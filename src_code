@@ -1,0 +1,348 @@
+"! Class to generate data based on input table <p></p>
+"! Works with: flat structure types
+CLASS zcl_cgap_data_gen DEFINITION
+  PUBLIC
+  FINAL
+  CREATE PRIVATE.
+
+  PUBLIC SECTION.
+    TYPES: BEGIN OF ty_val_change,
+             "! Name of component
+             comp_name       TYPE string,
+             "! Initial value for iteration
+             initial         TYPE i,
+             "! Times of iteration, subordinated to main block number of rows
+             block_iteration TYPE i,
+             "! Resulting value multiplier after iteration
+             iter_multiplier TYPE i,
+             "! If checked overrides initial value and iteration
+             randomize       TYPE boolean,
+           END OF ty_val_change,
+           tt_val_change TYPE SORTED TABLE OF ty_val_change WITH UNIQUE KEY primary_key COMPONENTS comp_name.
+
+    CLASS-METHODS:
+      get_instance
+        RETURNING
+          VALUE(r_data) TYPE REF TO zcl_cgap_data_gen,
+      clear_data.
+    METHODS:
+      "! <p class="shorttext synchronized" lang="en"></p>
+      "! Generates data for the type and key of i_tab_to_fill;
+      "! if exists value model is taken from the last line of i_tab_to_fill;
+      "! INSTANCE ERRASED AFTER USE
+      "! @parameter p_rows | number of rows to create.
+      "! @parameter p_block | rows for creating blocks, when key is unique no blocks are created for key
+      "! @parameter t_val_change | specifications for non-key fields
+      "! @parameter p_same_date | rows are created under the same date of last line or current day, applies to all date fields
+      "! @parameter p_default_text | overriding last line value for non-date fields
+      "! @parameter i_tab_to_fill | tab to complete with generated data
+      get_data IMPORTING p_rows         TYPE i "amount of rows
+                         p_block        TYPE i "main block
+                         t_val_change   TYPE tt_val_change OPTIONAL"to change values of non keys components
+                         p_same_date    TYPE boolean OPTIONAL "linked to main block
+                         p_default_text TYPE string OPTIONAL "if incoming tab has no values
+               CHANGING  i_tab_to_fill  TYPE ANY TABLE. "table to populate
+
+  PRIVATE SECTION.
+    CONSTANTS:
+      gc_table        TYPE c VALUE 'h',
+      gc_date         TYPE c VALUE 'D',
+      gc_default_text TYPE c VALUE 'Z',
+      gc_reverse      TYPE c LENGTH 5 VALUE '_REV_'.
+
+    TYPES: BEGIN OF ty_counter,
+             comp       TYPE string,
+             ini_val    TYPE i,
+             counter_d  TYPE i,
+             counter_u  TYPE i,
+             multiplier TYPE i,
+             random     TYPE boolean,
+           END OF ty_counter,
+           BEGIN OF ty_header,
+             comp       TYPE string,
+             type       TYPE string,
+             "! Key and unique else no key
+             key_unique TYPE boolean,
+             value      TYPE string,
+           END OF ty_header,
+           tt_header TYPE SORTED TABLE OF ty_header WITH UNIQUE KEY primary_key COMPONENTS comp,
+           tt_line   TYPE STANDARD TABLE OF string WITH NON-UNIQUE DEFAULT KEY,
+           tt_tab    TYPE STANDARD TABLE OF tt_line WITH NON-UNIQUE DEFAULT KEY.
+
+    CLASS-DATA gr_data TYPE REF TO zcl_cgap_data_gen.
+    CLASS-DATA gv_offset TYPE i.
+    DATA:
+      "! Header
+      gt_header      TYPE tt_header,
+      "! Catalog of keys from model table
+      keys           TYPE abap_table_keydescr_tab,
+      "! Catalog of components from model table
+      components     TYPE cl_abap_structdescr=>component_table,
+*      gt_data      TYPE tt_tab,
+      "! Same date is used
+      gv_same_date   TYPE boolean,
+      "! Default value
+      gv_text_val    TYPE string,
+      "! Table of specifications for verified components
+      gt_counters    TYPE SORTED TABLE OF ty_counter WITH UNIQUE KEY primary_key COMPONENTS comp,
+      "! Range for types treated as I
+      gr_num_types   TYPE RANGE OF c,
+      "! Range for types treated as I
+      gr_exclude_rev TYPE RANGE OF c,
+      "! Unique key overrides blocks
+      gv_unique_key  TYPE boolean.
+    METHODS:
+      "! <p class="shorttext synchronized" lang="en"></p>
+      "! Describe table for components and keys; and creates catalogs
+      "! @parameter i_tab_to_fill | model table
+      "! @parameter r_next | verifier of model table actually being a table
+      process_type IMPORTING i_tab_to_fill TYPE ANY TABLE
+                   RETURNING VALUE(r_next) TYPE boolean,
+      "! <p class="shorttext synchronized" lang="en"></p>
+      "! Gets only valid components populating global table for control
+      "! @parameter t_val_change | Table for specification on non-key fields <p class="shorttext synchronized" lang="en"></p>
+      process_counters IMPORTING
+                         t_val_change TYPE tt_val_change, "to change values of non keys components
+
+      "! <p class="shorttext synchronized" lang="en"></p>
+      "! Creates header based on model tables last line and default values
+      "! @parameter i_line | Last line of model table
+      "! @parameter empty_line | If checked, header is created on default values
+      "! @parameter r_head | Header line
+      header_component IMPORTING i_line        TYPE any OPTIONAL
+                                 empty_line    TYPE boolean OPTIONAL
+                       RETURNING VALUE(r_head) TYPE tt_header,
+
+      "! <p class="shorttext synchronized" lang="en"></p>
+      "! Creates full header regardless of keys into global attribute
+      "! @parameter i_tab_to_fill | <p class="shorttext synchronized" lang="en"></p>
+      generate_header IMPORTING i_tab_to_fill TYPE ANY TABLE,
+
+      "! <p class="shorttext synchronized" lang="en"></p>
+      "! Main generator for content based on header and specification values
+      "! @parameter p_key | Key value
+      "! @parameter r_line | Line for output
+      generate_line IMPORTING p_key         TYPE i
+                    RETURNING VALUE(r_line) TYPE tt_line,
+
+      "! <p class="shorttext synchronized" lang="en"></p>
+      "! Main generator control
+      "! @parameter cycle | Numbers of current block cycle
+      "! @parameter cycle_left | Numbers left of current block cycle
+      "! @parameter rows_total | Total of rows to generate
+      "! @parameter row_to_start | Starting key for row
+      "! @parameter r_tab | Table with values generated
+      generate_tab IMPORTING cycle        TYPE i
+                             cycle_left   TYPE i
+                             rows_total   TYPE i
+                             row_to_start TYPE i
+                   RETURNING VALUE(r_tab) TYPE tt_tab,
+
+      "! <p class="shorttext synchronized" lang="en"></p>
+      "! Creates dynamic table based on model table and append generated values
+      "! @parameter i_tab_to_build | Table with generated values
+      "! @parameter i_tab_to_fill | Model table to mimic and append
+      integrate_tab IMPORTING i_tab_to_build TYPE tt_tab
+                    CHANGING  i_tab_to_fill  TYPE ANY TABLE.
+
+ENDCLASS.
+
+
+
+CLASS zcl_cgap_data_gen IMPLEMENTATION.
+
+  METHOD get_instance.
+    IF NOT gr_data IS BOUND.
+      gr_data = NEW zcl_cgap_data_gen( ).
+    ENDIF.
+    gv_offset = strlen( gc_reverse ).
+    gr_data->gr_num_types = VALUE #( sign = 'I' option = 'EQ'
+                                   ( low = 'I') "INTEGER
+                                   ( low = 'F') "FLOAT
+                                   ( low = 'N') "NUMERIC
+                                   ( low = 'P') "PACKED
+*                                   ( low = '')
+                                   ).
+    r_data  = gr_data.
+  ENDMETHOD.
+**********************************************************************
+  METHOD get_data.
+*    IF NOT gr_data IS BOUND.
+*      get_instance( ).
+*    ENDIF.
+    CHECK gr_data->process_type( i_tab_to_fill = i_tab_to_fill ) EQ abap_true.
+    gv_same_date = p_same_date.
+    gv_text_val = COND #( WHEN p_default_text IS INITIAL THEN gc_default_text ELSE p_default_text ).
+    gr_data->generate_header( i_tab_to_fill = i_tab_to_fill ).
+    gr_data->integrate_tab(
+      EXPORTING
+        i_tab_to_build = gr_data->generate_tab( cycle        = COND #( WHEN p_block <= 0 OR gv_unique_key EQ abap_true THEN 1 ELSE p_block )
+                                                cycle_left   = 0
+                                                rows_total   = p_rows
+                                                row_to_start = 1 )
+      CHANGING
+        i_tab_to_fill = i_tab_to_fill ).
+*    me->clear_data( ).
+  ENDMETHOD.
+**********************************************************************
+  METHOD generate_line.
+    " Control blocks
+    LOOP AT gt_counters ASSIGNING FIELD-SYMBOL(<fs_count>).
+      IF <fs_count>-counter_d EQ 0.
+        <fs_count>-counter_d = <fs_count>-counter_u.
+        <fs_count>-counter_u = 0.
+      ENDIF.
+      <fs_count>-counter_d = <fs_count>-counter_d - 1.
+      <fs_count>-counter_u = <fs_count>-counter_u + 1.
+    ENDLOOP.
+
+    r_line = VALUE #( BASE r_line
+                      FOR wa_head IN gt_header
+                      LET key = COND #(  WHEN wa_head-key_unique EQ abap_true THEN abap_true )
+                          spec = VALUE #( gt_counters[ comp = wa_head-comp ] OPTIONAL )
+                          increment = COND #( WHEN spec IS INITIAL OR key EQ abap_true
+                                              THEN p_key
+                                              ELSE COND #( WHEN spec-random EQ abap_true
+                                                           THEN cl_abap_random_int=>create( )->get_next( )
+                                                           ELSE spec-ini_val * spec-counter_u * spec-multiplier ) )
+                          to_reverse = gc_reverse && reverse( shift_left( wa_head-value ) && increment )
+                          date = COND #( WHEN wa_head-type EQ gc_date THEN wa_head-value )
+                          numerical = COND #( WHEN wa_head-type IN gr_num_types THEN increment ) IN
+                        ( COND #(  WHEN date IS NOT INITIAL THEN
+                                                            COND #( WHEN gv_same_date EQ abap_true THEN date ELSE date + increment )
+                                   WHEN numerical IS NOT INITIAL THEN numerical
+                                   ELSE to_reverse ) ) ).
+  ENDMETHOD.
+**********************************************************************
+  METHOD generate_tab.
+    IF rows_total EQ 0.
+*      r_tab = gt_data.
+    ELSEIF cycle EQ 0.
+      r_tab = VALUE #( BASE r_tab ( LINES OF generate_tab( cycle        = cycle_left
+                                                           cycle_left   = 0
+                                                           rows_total   = rows_total" - 1
+                                                           row_to_start =  row_to_start + 1 ) ) ).
+    ELSEIF cycle > 0.
+      r_tab = VALUE #( BASE r_tab ( generate_line( p_key = row_to_start ) ) ).
+      r_tab = VALUE #( BASE r_tab ( LINES OF generate_tab( cycle        = cycle - 1
+                                                           cycle_left   = cycle_left + 1
+                                                           rows_total   = rows_total - 1
+                                                           row_to_start =  row_to_start ) ) ).
+    ENDIF.
+  ENDMETHOD.
+**********************************************************************
+  METHOD generate_header.
+    IF NOT lines( i_tab_to_fill ) IS INITIAL.
+      LOOP AT i_tab_to_fill ASSIGNING FIELD-SYMBOL(<fs_line>).
+        AT LAST.
+          gt_header = header_component( i_line = <fs_line> ).
+        ENDAT.
+      ENDLOOP.
+    ELSE.
+      gt_header = header_component( empty_line = abap_true ).
+    ENDIF.
+  ENDMETHOD.
+**********************************************************************
+  METHOD header_component.
+    gv_unique_key = VALUE boolean( keys[ 1 ]-is_unique DEFAULT '' ).
+    LOOP AT components ASSIGNING FIELD-SYMBOL(<fs_comp>).
+      IF NOT empty_line EQ abap_true.
+        ASSIGN COMPONENT <fs_comp>-name OF STRUCTURE i_line TO FIELD-SYMBOL(<comp_value>).
+      ENDIF.
+      r_head = VALUE #( LET typo = components[ name = <fs_comp>-name ]-type->type_kind
+                            key = COND #( WHEN VALUE #( keys[ 1 ]-components[ name = <fs_comp>-name ] OPTIONAL ) IS NOT INITIAL
+                                          THEN abap_true ELSE abap_false ) IN
+                        BASE r_head
+                        ( comp = <fs_comp>-name
+                          type = typo
+                          key_unique = key
+                          value = COND #( WHEN empty_line EQ abap_true
+                                          THEN COND #( WHEN typo EQ gc_date THEN sy-datum
+                                                       WHEN typo IN gr_num_types THEN ''
+                                                       ELSE gv_text_val ) "INCLUDES reverse CODE
+                                          ELSE <comp_value> ) ) ).
+    ENDLOOP.
+    "LINES TO EXCLUDE FOR REVERSE AT END
+    gr_exclude_rev = VALUE #( ( LINES OF gr_num_types )
+                              ( sign = 'I' option = 'EQ' low = gc_date ) ).
+  ENDMETHOD.
+**********************************************************************
+  METHOD process_type.
+    DATA:
+      lo_tab     TYPE REF TO cl_abap_tabledescr,
+      lo_str     TYPE REF TO cl_abap_structdescr,
+      lo_str_sub TYPE REF TO cl_abap_structdescr.
+
+    DATA(ret) = cl_abap_typedescr=>describe_by_data( p_data = i_tab_to_fill )->type_kind.
+    CHECK ret EQ gc_table.
+    r_next = abap_true.
+    lo_tab ?= cl_abap_typedescr=>describe_by_data( p_data = i_tab_to_fill ).
+    lo_str ?= lo_tab->get_table_line_type( ).
+    gr_data->keys = lo_tab->get_keys( ).
+    gr_data->components = lo_str->get_components( ).
+    WHILE NOT gr_data->components[ 1 ]-as_include IS INITIAL.
+      lo_str_sub ?= gr_data->components[ 1 ]-type.
+      gr_data->components = lo_str_sub->get_components( ).
+    ENDWHILE.
+    DELETE gr_data->keys WHERE is_unique NE abap_true.
+
+  ENDMETHOD.
+**********************************************************************
+  METHOD process_counters.
+    gt_counters = VALUE #( FOR wa_change IN t_val_change
+                           FOR wa_comp IN components WHERE ( name = wa_change-comp_name )
+                           ( comp = wa_comp-name
+                             ini_val = COND #( WHEN wa_change-initial IS INITIAL THEN 1 )
+                             counter_d = wa_change-block_iteration
+                             counter_u = 0
+                             multiplier = COND #( WHEN wa_change-iter_multiplier IS INITIAL THEN 1 )
+                             random = wa_change-randomize ) ).
+  ENDMETHOD.
+**********************************************************************
+  METHOD integrate_tab.
+    DATA: lr_struct_typ   TYPE REF TO  cl_abap_datadescr,
+          lr_dyntable_typ TYPE REF TO  cl_abap_tabledescr,
+
+          lt_dyn_table    TYPE REF TO data,
+          lw_dyn_line     TYPE REF TO data.
+
+    FIELD-SYMBOLS <fs_tab_out> TYPE STANDARD TABLE.
+
+    lr_struct_typ  ?= cl_abap_structdescr=>create( p_components = components ).
+    lr_dyntable_typ = cl_abap_tabledescr=>create( p_line_type = lr_struct_typ ).
+
+    CREATE DATA lt_dyn_table TYPE HANDLE lr_dyntable_typ.
+    CREATE DATA lw_dyn_line TYPE HANDLE lr_struct_typ.
+    ASSIGN lw_dyn_line->* TO FIELD-SYMBOL(<fs_line_out>).
+    ASSIGN lt_dyn_table->* TO <fs_tab_out>.
+
+    LOOP AT i_tab_to_build ASSIGNING FIELD-SYMBOL(<fs_line>).
+*      LOOP AT components ASSIGNING FIELD-SYMBOL(<comp_name>).
+      LOOP AT gt_header ASSIGNING FIELD-SYMBOL(<comp_name>).
+        DATA(idx) = sy-tabix.
+        ASSIGN COMPONENT <comp_name>-comp OF STRUCTURE <fs_line_out> TO FIELD-SYMBOL(<val_comp>).
+*        DATA(typo) = VALUE #( gt_header[ comp = <comp_name>-name ]-type OPTIONAL ).
+        DATA(val_to_rev) = <fs_line>[ idx ].
+        IF <comp_name>-type IN gr_num_types OR <comp_name>-type EQ gc_date OR strlen( val_to_rev ) < gv_offset.
+          <val_comp> = val_to_rev.
+        ELSE.
+          IF val_to_rev(gv_offset) EQ gc_reverse.
+            <val_comp> = reverse( val_to_rev+gv_offset ).
+          ELSE.
+            <val_comp> = val_to_rev.
+          ENDIF.
+        ENDIF.
+      ENDLOOP.
+      APPEND <fs_line_out> TO <fs_tab_out>.
+    ENDLOOP.
+
+    i_tab_to_fill = VALUE #( BASE i_tab_to_fill ( LINES OF <fs_tab_out> )  ).
+  ENDMETHOD.
+**********************************************************************
+  METHOD clear_data.
+    IF gr_data IS BOUND.
+      CLEAR: gr_data, gv_offset.
+    ENDIF.
+  ENDMETHOD.
+
+ENDCLASS.
