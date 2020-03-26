@@ -1,0 +1,416 @@
+class ZCL_RT_UTIL_DIST definition
+  public
+  final
+  create public .
+
+public section.
+
+  types:
+    BEGIN OF ty_r_frgsx,
+        sign   TYPE s_sign,
+        option TYPE s_option,
+        low    TYPE frgsx,
+        high   TYPE frgsx,
+      END OF ty_r_frgsx .
+  types:
+    rt_frgsx TYPE STANDARD TABLE OF ty_r_frgsx .
+  types:
+    BEGIN OF ty_r_zzpocal,
+        sign   TYPE s_sign,
+        option TYPE s_option,
+        low    TYPE zzpocal,
+        high   TYPE zzpocal,
+      END OF ty_r_zzpocal .
+  types:
+    rt_zzpocal TYPE STANDARD TABLE OF ty_r_zzpocal .
+  types:
+    BEGIN OF ty_r_z_cita_asignada,
+        sign   TYPE s_sign,
+        option TYPE s_option,
+        low    TYPE z_cita_asignada,
+        high   TYPE z_cita_asignada,
+      END OF ty_r_z_cita_asignada .
+  types:
+    rt_z_cita_asignada TYPE STANDARD TABLE OF ty_r_z_cita_asignada .
+  types:
+    BEGIN OF ty_r_zzruta,
+        sign   TYPE s_sign,
+        option TYPE s_option,
+        low    TYPE zrt_po_idruta,
+        high   TYPE zrt_po_idruta,
+      END OF ty_r_zzruta .
+  types:
+    rt_zzruta TYPE STANDARD TABLE OF ty_r_zzruta .
+  types:
+    BEGIN OF ty_r_herkl,
+        sign   TYPE s_sign,
+        option TYPE s_option,
+        low    TYPE herkl,
+        high   TYPE herkl,
+      END OF ty_r_herkl .
+  types:
+    rt_herkl TYPE STANDARD TABLE OF ty_r_herkl .
+  types:
+    BEGIN OF ty_r_zzmtfor,
+        sign   TYPE s_sign,
+        option TYPE s_option,
+        low    TYPE zrt_po_trfor,
+        high   TYPE zrt_po_trfor,
+      END OF ty_r_zzmtfor .
+  types:
+    rt_zzmtfor TYPE STANDARD TABLE OF ty_r_zzmtfor .
+  types:
+    BEGIN OF ty_r_zzmtloc,
+        sign   TYPE s_sign,
+        option TYPE s_option,
+        low    TYPE zrt_po_trloc,
+        high   TYPE zrt_po_trloc,
+      END OF ty_r_zzmtloc .
+  types:
+    rt_zzmtloc TYPE STANDARD TABLE OF ty_r_zzmtloc .
+  types:
+* SSB JOFLORESS AGOSTO 2019
+    BEGIN OF ty_r_numerocita,
+        sign   TYPE s_sign,
+        option TYPE s_option,
+        low    TYPE ZVA_NUMEROCITA,
+        high   TYPE ZVA_NUMEROCITA,
+      END OF ty_r_numerocita .
+  types:
+    rt_numerocita TYPE STANDARD TABLE OF ty_r_numerocita .
+  types:
+    BEGIN OF ty_r_fechaentrega,
+        sign   TYPE s_sign,
+        option TYPE s_option,
+        low    TYPE ZVA_fechaentrega,
+        high   TYPE ZVA_fechaentrega,
+      END OF ty_r_fechaentrega .
+  types:
+    rt_fechaentrega TYPE STANDARD TABLE OF ty_r_fechaentrega .
+  types:
+    BEGIN OF ty_r_estado,
+        sign   TYPE s_sign,
+        option TYPE s_option,
+        low    TYPE ZVA_estado,
+        high   TYPE ZVA_estado,
+      END OF ty_r_estado .
+  types:
+    rt_estado TYPE STANDARD TABLE OF ty_r_estado .
+
+* ESB JOFLORESS AGOSTO 2019
+  class-data RG_KDATB type FKK_RT_CRDATE .
+  class-data RG_KDATE type FKK_RT_CRDATE .
+  class-data RG_FRGSX type RT_FRGSX .
+  class-data RG_POCAL type RT_ZZPOCAL .
+  class-data RG_CITA type RT_Z_CITA_ASIGNADA .
+  class-data RG_ABELN type WRF_AT_ABELN_RTTY .
+  class-data RG_RUTA type RT_ZZRUTA .
+  class-data RG_ALAND type RT_HERKL .
+  class-data RG_MTFOR type RT_ZZMTFOR .
+  class-data RG_MTLOC type RT_ZZMTLOC .
+  data TAB type ref to DATA .
+  constants GC_GRAL type STRING value 'GRAL' ##NO_TEXT.
+  constants GC_POS type STRING value 'POS' ##NO_TEXT.
+  class-data RG_ELIKZ type FIP_T_ELIKZ_RANGE .
+  class-data RG_NUMEROCITA type RT_NUMEROCITA .
+  class-data RG_FECHAENTREGA type RT_FECHAENTREGA .
+  class-data RG_ESTADO type RT_ESTADO .
+  class-data RG_AREARECIBO type TRG_CHAR2 .
+
+  methods CONSTRUCTOR
+    importing
+      value(I_TAB_LINE) type ANY .
+  class-methods SET_SORT
+    importing
+      !I_SORT_ALL type ANY TABLE .
+  class-methods CLEAR_ATTR .
+  methods ALV_SELECT
+    importing
+      !I_OUTAB type ref to DATA
+      !I_TAB type STRING
+    returning
+      value(O_TAB) type ref to DATA .
+protected section.
+private section.
+
+  methods GET_DATA
+    importing
+      !I_LINE type ANY
+    returning
+      value(O_TAB) type ref to DATA .
+ENDCLASS.
+
+
+
+CLASS ZCL_RT_UTIL_DIST IMPLEMENTATION.
+
+
+* <SIGNATURE>---------------------------------------------------------------------------------------+
+* | Instance Public Method ZCL_RT_UTIL_DIST->ALV_SELECT
+* +-------------------------------------------------------------------------------------------------+
+* | [--->] I_OUTAB                        TYPE REF TO DATA
+* | [--->] I_TAB                          TYPE        STRING
+* | [<-()] O_TAB                          TYPE REF TO DATA
+* +--------------------------------------------------------------------------------------</SIGNATURE>
+  METHOD alv_select.
+
+    FIELD-SYMBOLS: <fs_outab> TYPE ANY TABLE.
+
+    ASSIGN i_outab->* TO <fs_outab>.
+    IF <fs_outab> IS ASSIGNED.
+      LOOP AT <fs_outab> ASSIGNING FIELD-SYMBOL(<fs_line>).
+        ASSIGN COMPONENT 'TEXT' OF STRUCTURE <fs_line> TO FIELD-SYMBOL(<fs_text>).
+        ASSIGN COMPONENT 'TAB' OF STRUCTURE <fs_line> TO FIELD-SYMBOL(<fs_tab>).
+        CREATE DATA o_tab LIKE <fs_tab>.
+        ASSIGN o_tab->* TO FIELD-SYMBOL(<fs_aux>).
+        IF <fs_text> EQ i_tab.
+          ASSIGN COMPONENT 'TAB' OF STRUCTURE <fs_line> TO <fs_tab>.
+          <fs_aux> = <fs_tab>.
+          EXIT.
+        ENDIF.
+      ENDLOOP.
+    ENDIF.
+  ENDMETHOD.
+
+
+* <SIGNATURE>---------------------------------------------------------------------------------------+
+* | Static Public Method ZCL_RT_UTIL_DIST=>CLEAR_ATTR
+* +-------------------------------------------------------------------------------------------------+
+* +--------------------------------------------------------------------------------------</SIGNATURE>
+  METHOD clear_attr.
+    CLEAR:
+    rg_abeln,
+    rg_cita,
+    rg_frgsx,
+    rg_aland,
+    rg_kdatb,
+    rg_kdate,
+    rg_mtfor,
+    rg_mtloc,
+    rg_mtloc,
+    rg_pocal,
+    rg_ruta.
+
+* SSB JOFLORESS AGOSTO 2019
+
+  CLEAR:
+  rg_elikz,
+  rg_numerocita,
+  rg_fechaentrega,
+  rg_estado,
+  rg_arearecibo.
+
+* ESB JOFLORESS AGOSTO 2019
+  ENDMETHOD.
+
+
+* <SIGNATURE>---------------------------------------------------------------------------------------+
+* | Instance Public Method ZCL_RT_UTIL_DIST->CONSTRUCTOR
+* +-------------------------------------------------------------------------------------------------+
+* | [--->] I_TAB_LINE                     TYPE        ANY
+* +--------------------------------------------------------------------------------------</SIGNATURE>
+  METHOD constructor.
+    FIELD-SYMBOLS: <fs_income> TYPE any.
+
+    ASSIGN i_tab_line TO <fs_income>.
+    IF <fs_income> IS ASSIGNED.
+      tab = COND #( WHEN tab IS INITIAL THEN get_data( i_line = <fs_income> ) ELSE tab ).
+      IF tab IS NOT INITIAL.
+        CALL FUNCTION 'ZRT_FM_DIST_TABSTRIP'
+          EXPORTING
+            i_ob = me.
+      ENDIF.
+    ENDIF.
+
+  ENDMETHOD.
+
+
+* <SIGNATURE>---------------------------------------------------------------------------------------+
+* | Instance Private Method ZCL_RT_UTIL_DIST->GET_DATA
+* +-------------------------------------------------------------------------------------------------+
+* | [--->] I_LINE                         TYPE        ANY
+* | [<-()] O_TAB                          TYPE REF TO DATA
+* +--------------------------------------------------------------------------------------</SIGNATURE>
+  METHOD get_data.
+*---------------------------------------------------------
+*Responsable: Carlos Guzmán
+*Id: CAGUZMANP
+*Motivo: Agregar campos a dsitribución( En curso, En transito)
+*Fecha: CAGP.26.03.2019
+*---------------------------------------------------------
+    TYPES: BEGIN OF ty_outab,
+             blnrb    TYPE fret-blnrb,
+             bposb    TYPE fret-bposb,
+             blnra    TYPE fret-blnra,
+             abnnr    TYPE fret-abnnr,
+             matnr    TYPE fret-matnr,
+             bposa    TYPE fret-bposa,
+             pmenb    TYPE fret-pmenb,
+             pmena    TYPE fret-pmena,
+             werks    TYPE fret-werka,
+*SLP.CAGP.26.03.2019 Agregar campos En transito, En curso
+             menge    TYPE eket-menge,
+*ELP.CAGP.26.03.2019 Agregar campos En transito, En curso
+             wemng    TYPE eket-wemng,
+*SLP.CAGP.26.03.2019 Agregar campos En transito, En curso
+             wamng    TYPE eket-wamng,
+*ELP.CAGP.26.03.2019 Agregar campos En transito, En curso
+             c_pend   TYPE eket-wemng,
+*SLP.CAGP.26.03.2019 Agregar campos En transito, En curso
+             en_curso TYPE wamng,
+             en_trans TYPE wamng,
+*ELP.CAGP.26.03.2019 Agregar campos En transito, En curso
+           END OF ty_outab,
+           tt_outab TYPE STANDARD TABLE OF ty_outab WITH NON-UNIQUE DEFAULT KEY,
+           BEGIN OF ty_outdata,
+             text TYPE string,
+             tab  TYPE tt_outab,
+           END OF ty_outdata,
+*SLP.CAGP.26.03.2019 Agregar campos En transito, En curso
+           BEGIN OF ty_for_dist,
+             ebeln TYPE eket-ebeln,
+             ebelp TYPE eket-ebelp,
+           END OF ty_for_dist.
+
+    DATA: lt_for_dist TYPE SORTED TABLE OF ty_for_dist WITH UNIQUE KEY ebeln ebelp.
+*ELP.CAGP.26.03.2019 Agregar campos En transito, En curso
+
+    DATA: lt_gral_tab TYPE SORTED TABLE OF ty_outab WITH NON-UNIQUE KEY blnrb bposb blnra abnnr matnr bposa werks,
+          lt_outab    TYPE STANDARD TABLE OF ty_outdata WITH NON-UNIQUE DEFAULT KEY.
+
+    FIELD-SYMBOLS: <tab>      TYPE any,
+                   <fs_comp1> TYPE any, "ebeln
+                   <fs_comp2> TYPE any, "ebelp
+                   <fs_comp3> TYPE any. "werks
+
+    CREATE DATA o_tab LIKE lt_outab.
+    ASSIGN o_tab->* TO <tab>.
+
+    ASSIGN COMPONENT 'EBELN' OF STRUCTURE i_line TO <fs_comp1>.
+    CHECK <fs_comp1> IS ASSIGNED.
+    ASSIGN COMPONENT 'EBELP' OF STRUCTURE i_line TO <fs_comp2>.
+    CHECK <fs_comp2> IS ASSIGNED.
+    ASSIGN COMPONENT 'WERKS' OF STRUCTURE i_line TO <fs_comp3>.
+    CHECK <fs_comp3> IS ASSIGNED.
+
+    IF sy-subrc IS INITIAL.
+      SELECT f~blnrb, f~bposb, f~blnra, f~abnnr, f~matnr, f~bposa, f~pmenb, f~pmena, f~werka AS werks,
+*SLP.CAGP.26.03.2019 Agregar campos En transito, En curso
+*        e~wemng
+        e~menge, e~wemng, e~wamng
+*ELP.CAGP.26.03.2019 Agregar campos En transito, En curso
+        FROM fret AS f LEFT JOIN eket AS e
+        ON f~blnra = e~ebeln
+        AND right( bposa, 5 ) = e~ebelp
+        WHERE f~blnrb EQ @<fs_comp1>
+        INTO TABLE @lt_gral_tab.
+
+      "Arma tabla de distribución general
+      IF lines( lt_gral_tab ) IS NOT INITIAL.
+        DELETE ADJACENT DUPLICATES FROM lt_gral_tab COMPARING blnrb bposb blnra abnnr matnr bposa.
+        DELETE lt_gral_tab WHERE werks NE <fs_comp3>.
+*SLP.CAGP.26.03.2019 Agregar campos En transito, En curso
+        lt_for_dist = CORRESPONDING #( lt_gral_tab DISCARDING DUPLICATES MAPPING ebeln = blnra ebelp = bposb EXCEPT *  ).
+        IF lines( lt_gral_tab ) IS NOT INITIAL.
+          SELECT ebeln, ebelp, menge, wemng, wamng FROM eket
+            INTO TABLE @DATA(lt_eket_dist)
+            FOR ALL ENTRIES IN @lt_for_dist
+              WHERE ebeln = @lt_for_dist-ebeln
+              AND ebelp = @lt_for_dist-ebelp.
+        ENDIF.
+*SLP.CAGP.26.03.2019 Agregar campos En transito, En curso
+        LOOP AT lt_gral_tab ASSIGNING FIELD-SYMBOL(<fs_line>).
+          <fs_line>-c_pend = <fs_line>-pmena - <fs_line>-wemng.
+*SLP.CAGP.26.03.2019 Agregar campos En transito, En curso
+          DATA(wa_eket_dist) = VALUE #( lt_eket_dist[ ebeln = <fs_line>-blnra
+                ebelp = <fs_line>-bposa ] DEFAULT '' ).
+          <fs_line>-en_curso = wa_eket_dist-menge - wa_eket_dist-wamng.
+          <fs_line>-en_trans = wa_eket_dist-wamng - wa_eket_dist-wemng.
+*ELP.CAGP.26.03.2019 Agregar campos En transito, En curso
+        ENDLOOP.
+      ENDIF.
+
+*Arma tabla de distribución por posición
+      DATA(lt_pos_tab) = FILTER #( lt_gral_tab WHERE blnrb = <fs_comp1>
+                                                 AND bposb = <fs_comp2> ).
+
+      lt_outab = VALUE #( ( text = gc_gral tab = lt_gral_tab )
+                          ( text = gc_pos  tab = lt_pos_tab  ) ).
+      <tab> = lt_outab.
+    ENDIF.
+
+  ENDMETHOD.
+
+
+* <SIGNATURE>---------------------------------------------------------------------------------------+
+* | Static Public Method ZCL_RT_UTIL_DIST=>SET_SORT
+* +-------------------------------------------------------------------------------------------------+
+* | [--->] I_SORT_ALL                     TYPE        ANY TABLE
+* +--------------------------------------------------------------------------------------</SIGNATURE>
+  METHOD set_sort.
+    DATA: rg_temp         TYPE RANGE OF char20,
+          wa_temp         LIKE LINE OF rg_temp,
+          lv_itab_open    TYPE boolean,
+          lv_rg_name_temp TYPE string,
+          lv_rg_name      TYPE string.
+
+    FIELD-SYMBOLS: <fs_line> TYPE any.
+
+    DATA counter TYPE i.
+    LOOP AT i_sort_all ASSIGNING FIELD-SYMBOL(<fs_all>).
+      ASSIGN COMPONENT 'SIGN' OF STRUCTURE <fs_all> TO FIELD-SYMBOL(<fs_sign>).
+      ASSIGN COMPONENT 'LOW' OF STRUCTURE <fs_all> TO FIELD-SYMBOL(<fs_low>).
+      CASE <fs_sign>.
+        WHEN 'X'.
+          lv_itab_open = abap_false.
+          lv_rg_name_temp = <fs_low>.
+        WHEN OTHERS.
+          lv_itab_open = abap_true.
+          ASSIGN <fs_all> TO <fs_line>.
+          TRY.
+              rg_temp = VALUE #( BASE rg_temp ( <fs_line> ) ).
+            CATCH cx_root.
+          ENDTRY.
+          lv_rg_name = lv_rg_name_temp.
+      ENDCASE.
+      AT LAST.
+        lv_itab_open = abap_false.
+      ENDAT.
+      IF rg_temp IS NOT INITIAL AND lv_itab_open IS INITIAL.
+        CASE lv_rg_name.
+          WHEN 'ABELN'.
+            rg_abeln = CORRESPONDING #( rg_temp ).
+          WHEN 'CITA'.
+            rg_cita = CORRESPONDING #( rg_temp ).
+          WHEN 'FRGSX'.
+            rg_frgsx = CORRESPONDING #( rg_temp ).
+          WHEN 'ALAND'.
+            rg_aland = CORRESPONDING #( rg_temp ).
+          WHEN 'KDATB'.
+            rg_kdatb = CORRESPONDING #( rg_temp ).
+          WHEN 'KDATE'.
+            rg_kdate = CORRESPONDING #( rg_temp ).
+          WHEN 'MTFOR'.
+            rg_mtfor = CORRESPONDING #( rg_temp ).
+          WHEN 'MTLOC'.
+            rg_mtloc = CORRESPONDING #( rg_temp ).
+          WHEN 'POCAL'.
+            rg_pocal = CORRESPONDING #( rg_temp ).
+          WHEN 'RUTA'.
+            rg_ruta  = CORRESPONDING #( rg_temp ).
+          WHEN 'ELIKZ'.
+            rg_elikz        = CORRESPONDING #( rg_temp ).
+          WHEN 'NUMEROCITA'.
+            rg_numerocita   = CORRESPONDING #( rg_temp ).
+          WHEN 'FECHAENTREGA'.
+            rg_fechaentrega = CORRESPONDING #( rg_temp ).
+          WHEN 'ESTADO'.
+            rg_estado       = CORRESPONDING #( rg_temp ).
+          WHEN 'AREARECIBO'.
+            rg_arearecibo   = CORRESPONDING #( rg_temp ).
+        ENDCASE.
+        CLEAR rg_temp.
+      ENDIF.
+    ENDLOOP.
+  ENDMETHOD.
+ENDCLASS.

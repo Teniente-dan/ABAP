@@ -1,0 +1,42 @@
+*&---------------------------------------------------------------------*
+*& Include LZRT_GF_UTIL_DISTO01
+*&---------------------------------------------------------------------*
+
+*&SPWIZARD: OUTPUT MODULE FOR TS 'DIST001'. DO NOT CHANGE THIS LINE!
+*&SPWIZARD: SETS ACTIVE TAB
+MODULE dist001_active_tab_set OUTPUT.
+  dist001-activetab = g_dist001-pressed_tab.
+  CASE g_dist001-pressed_tab.
+    WHEN c_dist001-tab1.
+      g_dist001-subscreen = '0101'.
+    WHEN c_dist001-tab2.
+      g_dist001-subscreen = '0102'.
+    WHEN OTHERS.
+*&SPWIZARD:      DO NOTHING
+  ENDCASE.
+ENDMODULE.
+*&---------------------------------------------------------------------*
+*& Module STATUS_0100 OUTPUT
+*&---------------------------------------------------------------------*
+*&
+*&---------------------------------------------------------------------*
+MODULE status_0100 OUTPUT.
+  SET PF-STATUS 'DIST'.
+  SET TITLEBAR 'DIST'.
+ENDMODULE.
+*&---------------------------------------------------------------------*
+*& Module DISPLAY_GRAL OUTPUT
+*&---------------------------------------------------------------------*
+*&
+*&---------------------------------------------------------------------*
+MODULE display_gral OUTPUT.
+  PERFORM alv_display_gral.
+ENDMODULE.
+*&---------------------------------------------------------------------*
+*& Module DISPLAY_POS OUTPUT
+*&---------------------------------------------------------------------*
+*&
+*&---------------------------------------------------------------------*
+MODULE display_pos OUTPUT.
+  PERFORM alv_display_pos.
+ENDMODULE.

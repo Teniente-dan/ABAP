@@ -1,0 +1,35 @@
+*&---------------------------------------------------------------------*
+*& Include LZRT_GF_UTIL_DISTI01
+*&---------------------------------------------------------------------*
+
+*&SPWIZARD: INPUT MODULE FOR TS 'DIST001'. DO NOT CHANGE THIS LINE!
+*&SPWIZARD: GETS ACTIVE TAB
+MODULE DIST001_ACTIVE_TAB_GET INPUT.
+  OK_CODE = SY-UCOMM.
+  CASE OK_CODE.
+    WHEN C_DIST001-TAB1.
+      G_DIST001-PRESSED_TAB = C_DIST001-TAB1.
+    WHEN C_DIST001-TAB2.
+      G_DIST001-PRESSED_TAB = C_DIST001-TAB2.
+    WHEN OTHERS.
+*&SPWIZARD:      DO NOTHING
+  ENDCASE.
+ENDMODULE.
+*&---------------------------------------------------------------------*
+*&      Module  USER_COMMAND_0100  INPUT
+*&---------------------------------------------------------------------*
+*       text
+*----------------------------------------------------------------------*
+MODULE user_command_0100 INPUT.
+  CASE sy-ucomm.
+
+  WHEN 'BACK'.
+    PERFORM exit_program.
+  WHEN 'EXIT'.
+    PERFORM exit_program.
+  WHEN 'CANCEL'.
+    PERFORM exit_program.
+  WHEN OTHERS.
+    EXIT.
+  ENDCASE.
+ENDMODULE.

@@ -1,0 +1,27 @@
+FUNCTION-POOL zrt_gf_util_dist.             "MESSAGE-ID ..
+
+* INCLUDE LZRT_GF_UTIL_DISTD...              " Local class definition
+
+*&SPWIZARD: FUNCTION CODES FOR TABSTRIP 'DIST001'
+CONSTANTS: BEGIN OF c_dist001,
+             tab1 LIKE sy-ucomm VALUE 'DIST001_FC1',
+             tab2 LIKE sy-ucomm VALUE 'DIST001_FC2',
+           END OF c_dist001.
+*&SPWIZARD: DATA FOR TABSTRIP 'DIST001'
+CONTROLS:  dist001 TYPE TABSTRIP.
+DATA: BEGIN OF g_dist001,
+        subscreen   LIKE sy-dynnr,
+        prog        LIKE sy-repid VALUE 'SAPLZRT_GF_UTIL_DIST',
+        pressed_tab LIKE sy-ucomm VALUE c_dist001-tab1,
+      END OF g_dist001.
+DATA:      ok_code LIKE sy-ucomm.
+
+DATA: gr_ob          TYPE REF TO  zcl_rt_util_dist,
+"distribución general
+      go_gral        TYPE REF TO cl_salv_table,
+      container_gral TYPE REF TO cl_gui_custom_container,
+      gr_gral        TYPE REF TO cl_salv_table,
+"distribución posición
+      go_pos         TYPE REF TO cl_salv_table,
+      container_pos  TYPE REF TO cl_gui_custom_container,
+      gr_pos         TYPE REF TO cl_salv_table.

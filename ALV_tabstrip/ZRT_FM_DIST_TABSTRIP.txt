@@ -1,0 +1,9 @@
+FUNCTION zrt_fm_dist_tabstrip.
+*"----------------------------------------------------------------------
+*"*"Interfase local
+*"  IMPORTING
+*"     REFERENCE(I_OB) TYPE REF TO  ZCL_RT_UTIL_DIST
+*"----------------------------------------------------------------------
+  gr_ob = i_ob.
+  CALL SCREEN 100 STARTING AT 8 1 ENDING AT 211 24.
+ENDFUNCTION.

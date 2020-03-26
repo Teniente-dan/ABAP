@@ -1,0 +1,384 @@
+*----------------------------------------------------------------------*
+***INCLUDE LZRT_GF_UTIL_DISTF01.
+*----------------------------------------------------------------------*
+*&---------------------------------------------------------------------*
+*& Form EXIT_PROGRAM
+*&---------------------------------------------------------------------*
+*& text
+*&---------------------------------------------------------------------*
+*& -->  p1        text
+*& <--  p2        text
+*&---------------------------------------------------------------------*
+FORM exit_program .
+
+  IF container_gral IS NOT INITIAL.
+    CALL METHOD container_gral->free.
+  ENDIF.
+
+  IF container_pos IS NOT INITIAL.
+    CALL METHOD container_pos->free.
+  ENDIF.
+
+  FREE: container_gral, container_pos, gr_ob, gr_gral, gr_pos.
+
+  SET SCREEN 0.
+  LEAVE SCREEN.
+ENDFORM.
+*&---------------------------------------------------------------------*
+*& Form ALV_DISPLAY
+*&---------------------------------------------------------------------*
+*& text
+*&---------------------------------------------------------------------*
+*&      --> P_
+*&---------------------------------------------------------------------*
+FORM alv_display_gral.
+  DATA: lr_functions   TYPE REF TO cl_salv_functions_list.
+
+  FIELD-SYMBOLS: <fs_outab> TYPE ANY TABLE.
+
+  DATA(outab) =   gr_ob->alv_select( i_outab = gr_ob->tab
+                                     i_tab   = gr_ob->gc_gral ).
+  ASSIGN outab->* TO <fs_outab>.
+  IF <fs_outab> IS ASSIGNED.
+
+    IF container_gral IS NOT BOUND AND cl_salv_table=>is_offline( ) EQ if_salv_c_bool_sap=>false.
+      CREATE OBJECT container_gral
+        EXPORTING
+          container_name = 'CONT_GRAL'.
+    ENDIF.
+    TRY.
+        cl_salv_table=>factory(
+        EXPORTING r_container    = container_gral
+                  container_name = 'CONT_GRAL'
+        IMPORTING r_salv_table = gr_gral
+        CHANGING  t_table = <fs_outab> ).
+      CATCH cx_salv_msg.
+    ENDTRY.
+
+    DATA column TYPE REF TO cl_salv_column.
+
+    IF gr_gral IS BOUND.
+      DATA(columns) = gr_gral->get_columns( ).
+      columns->set_optimize( value = abap_true ).
+*  Pedido
+      TRY .
+          column ?= columns->get_column( columnname = 'BLNRB' ).
+        CATCH cx_root.
+      ENDTRY.
+      column->set_long_text( value = 'Pedido'  ).
+      column->set_medium_text( value = 'Pedido'  ).
+      column->set_short_text( value = 'Pedido'  ).
+
+*  Traslado
+      TRY .
+          column ?= columns->get_column( columnname = 'BLNRA' ).
+        CATCH cx_root.
+      ENDTRY.
+      column->set_long_text( value = 'Traslado'  ).
+      column->set_medium_text( value = 'Traslado'  ).
+      column->set_short_text( value = 'Traslado'  ).
+
+*  Centro
+      TRY .
+          column ?= columns->get_column( columnname = 'ABNNR' ).
+        CATCH cx_root.
+      ENDTRY.
+      column->set_long_text( value = 'Centro'  ).
+      column->set_medium_text( value = 'Centro'  ).
+      column->set_short_text( value = 'Centro'  ).
+
+*  Artículo
+      TRY .
+          column ?= columns->get_column( columnname = 'MATNR' ).
+        CATCH cx_root.
+      ENDTRY.
+      column->set_long_text( value = 'Artículo'  ).
+      column->set_medium_text( value = 'Artículo'  ).
+      column->set_short_text( value = 'Artículo'  ).
+
+*  Posición
+      TRY .
+          column ?= columns->get_column( columnname = 'BPOSA' ).
+        CATCH cx_root.
+      ENDTRY.
+      column->set_long_text( value = 'Posición'  ).
+      column->set_medium_text( value = 'Posición'  ).
+      column->set_short_text( value = 'Posición'  ).
+
+
+*  6 - Cantidad total Pedida
+      TRY .
+          column ?= columns->get_column( columnname = 'PMENB' ).
+        CATCH cx_root.
+      ENDTRY.
+      column->set_long_text( value = 'Cantidad Total Pedida'  ).
+      column->set_medium_text( value = 'Cantidad T.Ped.' ).
+      column->set_short_text( value = 'Cnt.T.Ped' ).
+*  6.1 - Cantidad Pedida
+      TRY .
+          column ?= columns->get_column( columnname = 'PMENA' ).
+        CATCH cx_root.
+      ENDTRY.
+      column->set_long_text( value = 'Cantidad Pedida'  ).
+      column->set_medium_text( value = 'Cantidad Pedida' ).
+      column->set_short_text( value = 'Cnt.Pedida' ).
+*  7 - canitdad Entregada
+      TRY .
+          column ?= columns->get_column( columnname = 'WMENG' ).
+        CATCH cx_root.
+      ENDTRY.
+      column->set_long_text( value = 'Cantidad Entregada'  ).
+      column->set_medium_text( value = 'Cantidad Entregada' ).
+      column->set_short_text( value = 'Cnt.Entgd.' ).
+*  8 - cantidad Pendiente
+      TRY .
+          column ?= columns->get_column( columnname = 'C_PEND' ).
+        CATCH cx_root.
+      ENDTRY.
+      column->set_long_text( value = 'Cantidad Pendiente'  ).
+      column->set_medium_text( value = 'Cantidad Pendiente' ).
+      column->set_short_text( value = 'Cnt.Pend.' ).
+
+* centro
+      TRY .
+          column ?= columns->get_column( columnname = 'WERKS' ).
+        CATCH cx_root.
+      ENDTRY.
+      column->set_long_text( value = 'CEDIS'  ).
+      column->set_medium_text( value = 'CEDIS' ).
+      column->set_short_text( value = 'CEDIS' ).
+*SLP.CAGP.26.03.2019 Agregar campos En transito, En curso
+* En Curso
+      TRY .
+        column ?= columns->get_column( columnname = 'EN_CURSO' ).
+      CATCH cx_root.
+      ENDTRY.
+      column->set_long_text( VALUE = 'En Cur<so'  ).
+      column->set_medium_text( VALUE = 'En curso' ).
+      column->set_short_text( VALUE = 'En curso' ).
+
+* En transito
+      TRY .
+      column ?= columns->get_column( columnname = 'EN_TRANS' ).
+      CATCH cx_root.
+      ENDTRY.
+      column->set_long_text( VALUE = 'En transito'  ).
+      column->set_medium_text( VALUE = 'En transito' ).
+      column->set_short_text( VALUE = 'En trans.' ).
+*ELP.CAGP.26.03.2019 Agregar campos En transito, En curso
+*bposb
+      TRY .
+          column ?= columns->get_column( columnname = 'BPOSB' ).
+        CATCH cx_root.
+      ENDTRY.
+      column->set_visible(
+      value = if_salv_c_bool_sap=>false
+      ).
+
+      lr_functions = gr_gral->get_functions( ).
+      lr_functions->set_all( 'X' ).
+      lr_functions->set_layout_change(
+      value = if_salv_c_bool_sap=>false
+      ).
+
+*... #4 set layout
+*      DATA: lr_layout TYPE REF TO cl_salv_layout,
+*            ls_key    TYPE salv_s_layout_key.
+*
+*      lr_layout = gr_gral->get_layout( ).
+*
+**... #4.1 set the Layout Key
+*      ls_key-report = sy-repid.
+*      ls_key-handle = '01'.
+*      lr_layout->set_key( ls_key ).
+*
+**... #4.2 set usage of default Layouts
+**      lr_layout->set_default( abap_true ).
+*
+**... #4.3 set Layout save restriction
+*      lr_layout->set_save_restriction( '3' ).
+
+      gr_gral->display( ).
+    ENDIF.
+  ENDIF.
+ENDFORM.
+*&---------------------------------------------------------------------*
+*& Form ALV_DISPLAY_POS
+*&---------------------------------------------------------------------*
+*& text
+*&---------------------------------------------------------------------*
+*& -->  p1        text
+*& <--  p2        text
+*&---------------------------------------------------------------------*
+FORM alv_display_pos .
+  DATA: lr_functions   TYPE REF TO cl_salv_functions_list.
+
+  FIELD-SYMBOLS: <fs_outab> TYPE ANY TABLE.
+
+  DATA(outab) = gr_ob->alv_select( i_outab = gr_ob->tab
+                                   i_tab   = gr_ob->gc_pos ).
+  ASSIGN outab->* TO <fs_outab>.
+  IF <fs_outab> IS ASSIGNED.
+
+    IF container_pos IS NOT BOUND AND cl_salv_table=>is_offline( ) EQ if_salv_c_bool_sap=>false.
+      CREATE OBJECT container_pos
+        EXPORTING
+          container_name = 'CONT_POSI'.
+    ENDIF.
+    TRY.
+        cl_salv_table=>factory(
+        EXPORTING r_container    = container_pos
+                  container_name = 'CONT_POSI'
+        IMPORTING r_salv_table   = gr_pos
+        CHANGING  t_table        = <fs_outab> ).
+      CATCH cx_salv_msg.
+    ENDTRY.
+
+    DATA column TYPE REF TO cl_salv_column.
+
+    IF gr_pos IS BOUND.
+      DATA(columns) = gr_pos->get_columns( ).
+      columns->set_optimize( value = abap_true ).
+
+*  Pedido
+      TRY .
+          column ?= columns->get_column( columnname = 'BLNRB' ).
+        CATCH cx_root.
+      ENDTRY.
+      column->set_long_text( value = 'Pedido'  ).
+      column->set_medium_text( value = 'Pedido'  ).
+      column->set_short_text( value = 'Pedido'  ).
+
+*  Traslado
+      TRY .
+          column ?= columns->get_column( columnname = 'BLNRA' ).
+        CATCH cx_root.
+      ENDTRY.
+      column->set_long_text( value = 'Traslado'  ).
+      column->set_medium_text( value = 'Traslado'  ).
+      column->set_short_text( value = 'Traslado'  ).
+
+*  Centro
+      TRY .
+          column ?= columns->get_column( columnname = 'ABNNR' ).
+        CATCH cx_root.
+      ENDTRY.
+      column->set_long_text( value = 'Centro'  ).
+      column->set_medium_text( value = 'Centro'  ).
+      column->set_short_text( value = 'Centro'  ).
+
+*  Artículo
+      TRY .
+          column ?= columns->get_column( columnname = 'MATNR' ).
+        CATCH cx_root.
+      ENDTRY.
+      column->set_long_text( value = 'Artículo'  ).
+      column->set_medium_text( value = 'Artículo'  ).
+      column->set_short_text( value = 'Artículo'  ).
+
+*  Posición
+      TRY .
+          column ?= columns->get_column( columnname = 'BPOSA' ).
+        CATCH cx_root.
+      ENDTRY.
+      column->set_long_text( value = 'Posición'  ).
+      column->set_medium_text( value = 'Posición'  ).
+      column->set_short_text( value = 'Posición'  ).
+
+
+*  6 - Cantidad total Pedida
+      TRY .
+          column ?= columns->get_column( columnname = 'PMENB' ).
+        CATCH cx_root.
+      ENDTRY.
+      column->set_long_text( value = 'Cantidad Total Pedida'  ).
+      column->set_medium_text( value = 'Cantidad T.Ped.' ).
+      column->set_short_text( value = 'Cnt.T.Ped' ).
+*  6.1 - Cantidad Pedida
+      TRY .
+          column ?= columns->get_column( columnname = 'PMENA' ).
+        CATCH cx_root.
+      ENDTRY.
+      column->set_long_text( value = 'Cantidad Pedida'  ).
+      column->set_medium_text( value = 'Cantidad Pedida' ).
+      column->set_short_text( value = 'Cnt.Pedida' ).
+*  7 - canitdad Entregada
+      TRY .
+          column ?= columns->get_column( columnname = 'WMENG' ).
+        CATCH cx_root.
+      ENDTRY.
+      column->set_long_text( value = 'Cantidad Entregada'  ).
+      column->set_medium_text( value = 'Cantidad Entregada' ).
+      column->set_short_text( value = 'Cnt.Entgd.' ).
+*  8 - cantidad Pendiente
+      TRY .
+          column ?= columns->get_column( columnname = 'C_PEND' ).
+        CATCH cx_root.
+      ENDTRY.
+      column->set_long_text( value = 'Cantidad Pendiente'  ).
+      column->set_medium_text( value = 'Cantidad Pendiente' ).
+      column->set_short_text( value = 'Cnt.Pend.' ).
+
+* centro
+      TRY .
+          column ?= columns->get_column( columnname = 'WERKS' ).
+        CATCH cx_root.
+      ENDTRY.
+      column->set_long_text( value = 'CEDIS'  ).
+      column->set_medium_text( value = 'CEDIS' ).
+      column->set_short_text( value = 'CEDIS' ).
+*SLP.CAGP.26.03.2019 Agregar campos En transito, En curso
+* En Curso
+      TRY .
+        column ?= columns->get_column( columnname = 'EN_CURSO' ).
+      CATCH cx_root.
+      ENDTRY.
+      column->set_long_text( VALUE = 'En Curso'  ).
+      column->set_medium_text( VALUE = 'En curso' ).
+      column->set_short_text( VALUE = 'En curso' ).
+
+* En transito
+      TRY .
+        column ?= columns->get_column( columnname = 'EN_TRANS' ).
+      CATCH cx_root.
+      ENDTRY.
+      column->set_long_text( VALUE = 'En transito'  ).
+      column->set_medium_text( VALUE = 'En transito' ).
+      column->set_short_text( VALUE = 'En trans.' ).
+*ELP.CAGP.26.03.2019 Agregar campos En transito, En curso
+*bposb
+      TRY .
+          column ?= columns->get_column( columnname = 'BPOSB' ).
+        CATCH cx_root.
+      ENDTRY.
+      column->set_visible(
+          value = if_salv_c_bool_sap=>false
+      ).
+
+      lr_functions = gr_pos->get_functions( ).
+      lr_functions->set_all( 'X' ).
+      lr_functions->set_layout_change(
+      value = if_salv_c_bool_sap=>false
+      ).
+
+*... #4 set layout
+*      DATA: lr_layout TYPE REF TO cl_salv_layout,
+*            ls_key    TYPE salv_s_layout_key.
+*
+*      lr_layout = gr_gral->get_layout( ).
+*
+**... #4.1 set the Layout Key
+*      ls_key-report = sy-repid.
+*      ls_key-handle = '02'.
+*      lr_layout->set_key( ls_key ).
+*
+**... #4.2 set usage of default Layouts
+**      lr_layout->set_default( abap_true ).
+*
+**... #4.3 set Layout save restriction
+*      lr_layout->set_save_restriction( '3' ).
+
+      gr_pos->display( ).
+    ENDIF.
+  ENDIF.
+ENDFORM.
