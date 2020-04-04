@@ -1,140 +1,213 @@
 """"""""""""""""""""""" STATUS is defined in a FG and loaded via Object Name   
-class ZCL_RT_BAU_REVINV definition
-  public
-  inheriting from CL_SALV_MODEL_LIST
-  create public .
+CLASS zcl_rt_bau_revinv_alv DEFINITION
+  PUBLIC
+  INHERITING FROM cl_salv_model_list
+  CREATE PUBLIC .
 
-public section.
+  PUBLIC SECTION.
 
-  interfaces ZIF_RT_BAU_REP_ACC .
+    INTERFACES zif_rt_bau_rep_acc .
 
-  methods DISPLAY_ALV .
-  methods CONSTRUCTOR .
-protected section.
-private section.
+    EVENTS to_save
+      EXPORTING
+        VALUE(mod_tab) TYPE REF TO data .
 
-  types:
-    BEGIN OF ty_fields,
-      fields TYPE string,
-    END OF ty_fields .
-  types:
-    t_fields TYPE STANDARD TABLE OF ty_fields WITH NON-UNIQUE DEFAULT KEY .
-  types:
-    BEGIN OF ty_cnst,
-      fname TYPE fname_021,
-      numb  TYPE  tvarv_numb,
-      sign  TYPE  tvarv_sign,
-      opti  TYPE  tvarv_opti,
-      low   TYPE tvarv_val,
-      high  TYPE  tvarv_val,
-    END OF ty_cnst .
-  types:
-    tt_cnst TYPE SORTED TABLE OF ty_cnst WITH NON-UNIQUE KEY fname numb .
+    METHODS display_alv
+      IMPORTING
+        !i_no_refresh TYPE boolean OPTIONAL .
+    METHODS constructor
+      IMPORTING
+        !i_tab_to_alv TYPE REF TO data .
+  PROTECTED SECTION.
+  PRIVATE SECTION.
 
-  data DIST1 type BOOLEAN .
-  data DIST2 type BOOLEAN .
-  data DIST3 type BOOLEAN .
-  data GT_OUTAB type ref to DATA .
-  data GR_TABLE type ref to CL_SALV_TABLE .
-  data GT_CNST type TT_CNST .
-  data EDITABLE type BOOLEAN .
-  class-data C_BO_BAU type STRING value 'BO_BAU' ##NO_TEXT.
-  class-data C_IP_SERV_OUT type STRING value 'IP_SERV_OUT' ##NO_TEXT.
-  class-data C_IP_SERV_IN type STRING value 'IP_SERV_IN' ##NO_TEXT.
-  class-data PARSER type CHAR1 value ',' ##NO_TEXT.
-  class-data K1 type STRING value 'MATNR' ##NO_TEXT.
-  class-data K2 type STRING value 'LIFNR' ##NO_TEXT.
-  class-data K3 type STRING value 'ICON' ##NO_TEXT.
+    TYPES:
+      BEGIN OF ty_fields,
+        fields TYPE string,
+      END OF ty_fields .
+    TYPES:
+      t_fields TYPE STANDARD TABLE OF ty_fields WITH NON-UNIQUE DEFAULT KEY .
+    TYPES:
+      BEGIN OF ty_cnst,
+        fname TYPE fname_021,
+        numb  TYPE  tvarv_numb,
+        sign  TYPE  tvarv_sign,
+        opti  TYPE  tvarv_opti,
+        low   TYPE tvarv_val,
+        high  TYPE  tvarv_val,
+      END OF ty_cnst .
+    TYPES:
+      tt_cnst TYPE SORTED TABLE OF ty_cnst WITH NON-UNIQUE KEY fname numb .
 
-  methods GET_REGS_FROM_DIST
-    returning
-      value(R_TAB) type ref to DATA .
-  methods SAVE_SEQUENCE
-    returning
-      value(R_OK) type BOOLEAN .
-  methods GET_TABKEY_FROM_SEL
-    importing
-      !I_TO_PARSE type BOOLEAN optional
-    returning
-      value(R_TABKEY) type STRING .
-  methods CHECK_CHANGES .
-  methods LOAD_CNST
-    returning
-      value(I_OK) type BOOLEAN .
-  methods SAVE_DATA
-    changing
-      !O_TAB type ref to DATA optional
-    returning
-      value(I_OK) type BOOLEAN .
-  methods SEND_MESSAGE
-    importing
-      !I_TYPE_MESSAGE type CHAR1
-      !I_CONF type BOOLEAN optional
-      !I_MESSAGE type STRING
-    returning
-      value(R_OK) type BOOLEAN .
-  methods CARGA_ARCHIVO
-    returning
-      value(I_OK) type BOOLEAN .
-  methods MOSTRAR_ARCHIVO .
-  methods SET_SORT
-    importing
-      !I_SORT type CHAR01 .
-  methods UPDATE_ICON
-    importing
-      !I_FIELD type STRING
-      !I_TAB type ref to DATA
-      !I_FILED type BOOLEAN .
-  methods SET_EDITABLE
-    importing
-      !I_FIELDS type T_FIELDS .
-  methods SET_COLUMNS
-    changing
-      !IO_TABLE type ref to CL_SALV_TABLE .
-  methods SET_FUNCTIONS
-    changing
-      !IO_TABLE type ref to CL_SALV_TABLE .
-  methods CREATE_ALV
-    changing
-      !I_TAB type ANY TABLE .
-  methods USER_COMMANDO
-    for event ADDED_FUNCTION of CL_SALV_EVENTS
-    importing
-      !E_SALV_FUNCTION .
-  methods SET_EVENTS
-    changing
-      !IO_TABLE type ref to CL_SALV_TABLE .
+    DATA dist1 TYPE boolean .
+    DATA dist2 TYPE boolean .
+    DATA dist3 TYPE boolean .
+    DATA gt_outab TYPE REF TO data .
+    DATA gt_to_db TYPE REF TO data .
+    DATA gr_table TYPE REF TO cl_salv_table .
+    DATA gt_cnst TYPE tt_cnst .
+    CLASS-DATA c_bo_bau TYPE string VALUE 'BO_BAU' ##NO_TEXT.
+    CLASS-DATA c_ip_serv_out TYPE string VALUE 'IP_SERV_OUT' ##NO_TEXT.
+    CLASS-DATA c_ip_serv_in TYPE string VALUE 'IP_SERV_IN' ##NO_TEXT.
+    CLASS-DATA parser TYPE char1 VALUE ',' ##NO_TEXT.
+    CLASS-DATA k1 TYPE string VALUE 'MATNR' ##NO_TEXT.
+    CLASS-DATA k2 TYPE string VALUE 'LIFNR' ##NO_TEXT.
+    CLASS-DATA k3 TYPE string VALUE 'ICON' ##NO_TEXT.
+
+    METHODS save_data
+      CHANGING
+        !o_tab      TYPE REF TO data OPTIONAL
+      RETURNING
+        VALUE(i_ok) TYPE boolean .
+    METHODS atta_borrar .
+    METHODS add_to_mod_db
+      IMPORTING
+        !i_line TYPE REF TO data .
+    METHODS get_regs_from_dist
+      RETURNING
+        VALUE(r_tab) TYPE REF TO data .
+    METHODS save_sequence
+      RETURNING
+        VALUE(r_ok) TYPE boolean .
+    METHODS get_tabkey_from_sel
+      IMPORTING
+        !i_to_parse     TYPE boolean OPTIONAL
+      RETURNING
+        VALUE(r_tabkey) TYPE string .
+    METHODS check_changes .
+    METHODS load_cnst
+      RETURNING
+        VALUE(i_ok) TYPE boolean .
+    METHODS send_message
+      IMPORTING
+        !i_type_message TYPE char1
+        !i_conf         TYPE boolean OPTIONAL
+        !i_message      TYPE string
+      RETURNING
+        VALUE(r_ok)     TYPE boolean .
+    METHODS atta_carga
+      RETURNING
+        VALUE(i_ok) TYPE boolean .
+    METHODS atta_mostrar .
+    METHODS set_sort
+      IMPORTING
+        !i_sort       TYPE char01
+        !i_no_refresh TYPE boolean OPTIONAL .
+    METHODS update_icon
+      IMPORTING
+        !i_field TYPE string
+        !i_tab   TYPE REF TO data
+        !i_filed TYPE boolean .
+    METHODS set_editable
+      IMPORTING
+        !i_fields TYPE t_fields .
+    METHODS set_columns
+      CHANGING
+        !io_table TYPE REF TO cl_salv_table .
+    METHODS set_functions
+      CHANGING
+        !io_table TYPE REF TO cl_salv_table .
+    METHODS create_alv
+      CHANGING
+        !i_tab TYPE ANY TABLE .
+    METHODS user_commando
+          FOR EVENT added_function OF cl_salv_events
+      IMPORTING
+          !e_salv_function .
+    METHODS set_events
+      CHANGING
+        !io_table TYPE REF TO cl_salv_table .
+    METHODS handle_data_changed
+          FOR EVENT data_changed OF cl_gui_alv_grid
+      IMPORTING
+          !er_data_changed .
 ENDCLASS.
 
 
 
-CLASS ZCL_RT_BAU_REVINV IMPLEMENTATION.
+CLASS ZCL_RT_BAU_REVINV_ALV IMPLEMENTATION.
 
 
 * <SIGNATURE>---------------------------------------------------------------------------------------+
-* | Instance Private Method ZCL_RT_BAU_REVINV->CARGA_ARCHIVO
+* | Instance Private Method ZCL_RT_BAU_REVINV_ALV->ADD_TO_MOD_DB
 * +-------------------------------------------------------------------------------------------------+
-* | [<-()] I_OK                           TYPE        BOOLEAN
+* | [--->] I_LINE                         TYPE REF TO DATA
 * +--------------------------------------------------------------------------------------</SIGNATURE>
-  METHOD carga_archivo.
+  METHOD add_to_mod_db.
+    FIELD-SYMBOLS: <fs_inline> TYPE any,
+                   <fs_outab>  TYPE ANY TABLE, "global tab with master data
+                   <fs_modtab> TYPE STANDARD TABLE. "data to be updated in db
+    ASSIGN gt_outab->* TO <fs_outab>.
+    ASSIGN i_line->* TO <fs_inline>.
 
+    IF gt_to_db IS NOT BOUND.
+      CREATE DATA gt_to_db LIKE <fs_outab>.
+    ENDIF.
+    ASSIGN gt_to_db->* TO <fs_modtab>.
+
+    INSERT <fs_inline> INTO TABLE <fs_modtab> .
+    SORT <fs_modtab> DESCENDING BY ('MATNR').
+    DELETE ADJACENT DUPLICATES FROM <fs_modtab> COMPARING ('MATNR').
+*     <fs_modtab> FROM <fs_inline>.
+
+  ENDMETHOD.
+
+
+* <SIGNATURE>---------------------------------------------------------------------------------------+
+* | Instance Private Method ZCL_RT_BAU_REVINV_ALV->ATTA_BORRAR
+* +-------------------------------------------------------------------------------------------------+
+* +--------------------------------------------------------------------------------------</SIGNATURE>
+  METHOD atta_borrar.
     DATA: go_myobject TYPE REF TO cl_gos_manager,
           w_logsys    TYPE tbdls-logsys,
           w_container TYPE REF TO cl_gui_custom_container.
 
 *    CONCATENATE ws_acdos-znumcon ws_acdos-lifnr ws_acdos-abtnr INTO obj-objkey.
     DATA(objtype) = VALUE saeobjid( gt_cnst[ fname = c_bo_bau ]-low OPTIONAL ).
+    DATA(ip_service) = VALUE sgs_srvnam( gt_cnst[ fname = c_ip_serv_out ]-low OPTIONAL ).
+
+    CHECK objtype IS NOT INITIAL AND ip_service IS NOT INITIAL.
+
+    CALL FUNCTION 'OWN_LOGICAL_SYSTEM_GET'
+      IMPORTING
+        own_logical_system             = w_logsys
+      EXCEPTIONS
+        own_logical_system_not_defined = 1
+        OTHERS                         = 2.
+    IF sy-subrc <> 0.
+      MESSAGE ID sy-msgid TYPE sy-msgty NUMBER sy-msgno
+              WITH sy-msgv1 sy-msgv2 sy-msgv3 sy-msgv4.
+    ENDIF.
+
+    DATA(obj) = VALUE borident( objtype = objtype
+                                objkey = me->get_tabkey_from_sel( )
+                                logsys = w_logsys   ). "Info Object // objtype = nombre del Bisness Object
+    DATA(mode) = 'E'.
+    CREATE OBJECT go_myobject
+      EXPORTING
+        is_object = obj
+        ip_mode   = mode
+*       ip_no_commit = 'X' ""attachments should only be saved by own commits
+      EXCEPTIONS
+        OTHERS    = 1.
+
+    go_myobject->unpublish( ).
+  ENDMETHOD.
+
+
+* <SIGNATURE>---------------------------------------------------------------------------------------+
+* | Instance Private Method ZCL_RT_BAU_REVINV_ALV->ATTA_CARGA
+* +-------------------------------------------------------------------------------------------------+
+* | [<-()] I_OK                           TYPE        BOOLEAN
+* +--------------------------------------------------------------------------------------</SIGNATURE>
+  METHOD atta_carga.
+
+    DATA: go_myobject TYPE REF TO cl_gos_manager,
+          w_logsys    TYPE tbdls-logsys,
+          w_container TYPE REF TO cl_gui_custom_container.
+
+    DATA(objtype) = VALUE saeobjid( gt_cnst[ fname = c_bo_bau ]-low OPTIONAL ).
     DATA(ip_service) = VALUE sgs_srvnam( gt_cnst[ fname = c_ip_serv_in ]-low OPTIONAL ).
-
-*    SELECT znumcon, lifnr, zdescon,
-*           abtnr, datab, datbi,
-*           ersda, cputm, ernam
-*      INTO TABLE @DATA(it_acdos)
-*      FROM zrt_aboni.
-
-*    DATA(ls_acdos) = VALUE #( it_acdos[ 1 ] OPTIONAL ).
-*    obj-objkey = |{ ls_acdos-znumcon }{ ls_acdos-lifnr }{ ls_acdos-abtnr }|.
-*    obj-objtype = c_obj_bus_boni. "nombre del Bisness Object
 
     CHECK objtype IS NOT INITIAL AND ip_service IS NOT INITIAL.
 
@@ -177,7 +250,61 @@ CLASS ZCL_RT_BAU_REVINV IMPLEMENTATION.
 
 
 * <SIGNATURE>---------------------------------------------------------------------------------------+
-* | Instance Private Method ZCL_RT_BAU_REVINV->CHECK_CHANGES
+* | Instance Private Method ZCL_RT_BAU_REVINV_ALV->ATTA_MOSTRAR
+* +-------------------------------------------------------------------------------------------------+
+* +--------------------------------------------------------------------------------------</SIGNATURE>
+  METHOD atta_mostrar.
+    DATA: go_myobject TYPE REF TO cl_gos_manager,
+          w_logsys    TYPE tbdls-logsys,
+          w_container TYPE REF TO cl_gui_custom_container.
+
+    DATA(objtype) = VALUE saeobjid( gt_cnst[ fname = c_bo_bau ]-low OPTIONAL ).
+    DATA(ip_service) = VALUE sgs_srvnam( gt_cnst[ fname = c_ip_serv_out ]-low OPTIONAL ).
+
+    CHECK objtype IS NOT INITIAL AND ip_service IS NOT INITIAL.
+
+    CALL FUNCTION 'OWN_LOGICAL_SYSTEM_GET'
+      IMPORTING
+        own_logical_system             = w_logsys
+      EXCEPTIONS
+        own_logical_system_not_defined = 1
+        OTHERS                         = 2.
+    IF sy-subrc <> 0.
+      MESSAGE ID sy-msgid TYPE sy-msgty NUMBER sy-msgno
+              WITH sy-msgv1 sy-msgv2 sy-msgv3 sy-msgv4.
+    ENDIF.
+
+    DATA(obj) = VALUE borident( objtype = objtype
+                                objkey = me->get_tabkey_from_sel( )
+                                logsys = w_logsys   ). "Info Object // objtype = nombre del Bisness Object
+
+    CREATE OBJECT go_myobject
+      EXPORTING
+        is_object = obj
+        ip_mode   = 'E' "display
+*       ip_no_commit = 'X' ""attachments should only be saved by own commits
+      EXCEPTIONS
+        OTHERS    = 1.
+* Llama servicio
+    CALL METHOD go_myobject->start_service_direct
+      EXPORTING
+        ip_service       = ip_service
+        is_object        = obj
+        io_container     = w_container
+      EXCEPTIONS
+        no_object        = 1
+        object_invalid   = 2
+        execution_failed = 3
+        OTHERS           = 4.
+    IF sy-subrc <> 0.
+      MESSAGE ID sy-msgid TYPE sy-msgty NUMBER sy-msgno
+                 WITH sy-msgv1 sy-msgv2 sy-msgv3 sy-msgv4.
+    ENDIF.
+  ENDMETHOD.
+
+
+* <SIGNATURE>---------------------------------------------------------------------------------------+
+* | Instance Private Method ZCL_RT_BAU_REVINV_ALV->CHECK_CHANGES
 * +-------------------------------------------------------------------------------------------------+
 * +--------------------------------------------------------------------------------------</SIGNATURE>
   METHOD check_changes.
@@ -207,32 +334,34 @@ CLASS ZCL_RT_BAU_REVINV IMPLEMENTATION.
 
 
 * <SIGNATURE>---------------------------------------------------------------------------------------+
-* | Instance Public Method ZCL_RT_BAU_REVINV->CONSTRUCTOR
+* | Instance Public Method ZCL_RT_BAU_REVINV_ALV->CONSTRUCTOR
 * +-------------------------------------------------------------------------------------------------+
+* | [--->] I_TAB_TO_ALV                   TYPE REF TO DATA
 * +--------------------------------------------------------------------------------------</SIGNATURE>
   METHOD constructor.
-    TYPES: BEGIN OF ty_test,
-             matnr TYPE mara-matnr,
-             lifnr TYPE lifnr,
-             icon  TYPE icon_d,
-           END OF ty_test,
-           tt_outab TYPE STANDARD TABLE OF ty_test WITH NON-UNIQUE DEFAULT KEY.
+    FIELD-SYMBOLS: <out_tab> TYPE ANY TABLE,
+                   <in_tab>  TYPE ANY TABLE.
+    DATA out_tab TYPE REF TO data.
 
-    DATA(out_tab) = VALUE tt_outab(
-                                    ( matnr = '000000000000000001' lifnr = 'a' icon = icon_absence )
-                                    ( matnr = '000000000000000003' lifnr = 'a' )
-                                    ( matnr = '000000000000000003' )
-                                    ( matnr = '000000000000000002' )
-                                     ).
+**********************************************************************
+*    Super class needed for editable ALV
     super->constructor( ).
-    GET REFERENCE OF out_tab INTO gt_outab.
-    me->create_alv( CHANGING i_tab = out_tab ).
-    me->display_alv( ).
+**********************************************************************
+
+    IF i_tab_to_alv IS BOUND.
+      ASSIGN i_tab_to_alv->* TO <in_tab>.
+      CREATE DATA out_tab LIKE <in_tab>.
+      ASSIGN out_tab->* TO <out_tab>.
+      <out_tab> = <in_tab>.
+      GET REFERENCE OF <out_tab> INTO gt_outab.
+      me->create_alv( CHANGING i_tab = <out_tab> ).
+    ENDIF.
+
   ENDMETHOD.
 
 
 * <SIGNATURE>---------------------------------------------------------------------------------------+
-* | Instance Private Method ZCL_RT_BAU_REVINV->CREATE_ALV
+* | Instance Private Method ZCL_RT_BAU_REVINV_ALV->CREATE_ALV
 * +-------------------------------------------------------------------------------------------------+
 * | [<-->] I_TAB                          TYPE        ANY TABLE
 * +--------------------------------------------------------------------------------------</SIGNATURE>
@@ -280,23 +409,31 @@ CLASS ZCL_RT_BAU_REVINV IMPLEMENTATION.
       start_line   = 1
       end_line     = 20 ).
 
-    gr_table->display( ).
+    me->set_sort(
+      EXPORTING
+        i_sort    =  '1'   " Campo de texto, longitud 1
+        i_no_refresh = abap_true
+    ).
+
   ENDMETHOD.
 
 
 * <SIGNATURE>---------------------------------------------------------------------------------------+
-* | Instance Public Method ZCL_RT_BAU_REVINV->DISPLAY_ALV
+* | Instance Public Method ZCL_RT_BAU_REVINV_ALV->DISPLAY_ALV
 * +-------------------------------------------------------------------------------------------------+
+* | [--->] I_NO_REFRESH                   TYPE        BOOLEAN(optional)
 * +--------------------------------------------------------------------------------------</SIGNATURE>
   METHOD display_alv.
-    IF gr_table IS BOUND.
+    IF gr_table IS BOUND AND i_no_refresh IS INITIAL.
       gr_table->refresh( ).
+    ELSE.
+      gr_table->display( ).
     ENDIF.
   ENDMETHOD.
 
 
 * <SIGNATURE>---------------------------------------------------------------------------------------+
-* | Instance Private Method ZCL_RT_BAU_REVINV->GET_REGS_FROM_DIST
+* | Instance Private Method ZCL_RT_BAU_REVINV_ALV->GET_REGS_FROM_DIST
 * +-------------------------------------------------------------------------------------------------+
 * | [<-()] R_TAB                          TYPE REF TO DATA
 * +--------------------------------------------------------------------------------------</SIGNATURE>
@@ -328,7 +465,7 @@ CLASS ZCL_RT_BAU_REVINV IMPLEMENTATION.
 
 
 * <SIGNATURE>---------------------------------------------------------------------------------------+
-* | Instance Private Method ZCL_RT_BAU_REVINV->GET_TABKEY_FROM_SEL
+* | Instance Private Method ZCL_RT_BAU_REVINV_ALV->GET_TABKEY_FROM_SEL
 * +-------------------------------------------------------------------------------------------------+
 * | [--->] I_TO_PARSE                     TYPE        BOOLEAN(optional)
 * | [<-()] R_TABKEY                       TYPE        STRING
@@ -353,7 +490,24 @@ CLASS ZCL_RT_BAU_REVINV IMPLEMENTATION.
 
 
 * <SIGNATURE>---------------------------------------------------------------------------------------+
-* | Instance Private Method ZCL_RT_BAU_REVINV->LOAD_CNST
+* | Instance Private Method ZCL_RT_BAU_REVINV_ALV->HANDLE_DATA_CHANGED
+* +-------------------------------------------------------------------------------------------------+
+* | [--->] ER_DATA_CHANGED                LIKE
+* +--------------------------------------------------------------------------------------</SIGNATURE>
+  METHOD handle_data_changed.
+    DATA line_to_mod TYPE REF TO data.
+    FIELD-SYMBOLS <mp_mod_rows> TYPE ANY TABLE.
+
+    ASSIGN er_data_changed->mp_mod_rows->* TO <mp_mod_rows>.
+    LOOP AT <mp_mod_rows> ASSIGNING FIELD-SYMBOL(<fs_line>).
+      GET REFERENCE OF <fs_line> INTO line_to_mod.
+      me->add_to_mod_db( i_line = line_to_mod ).
+    ENDLOOP.
+  ENDMETHOD.
+
+
+* <SIGNATURE>---------------------------------------------------------------------------------------+
+* | Instance Private Method ZCL_RT_BAU_REVINV_ALV->LOAD_CNST
 * +-------------------------------------------------------------------------------------------------+
 * | [<-()] I_OK                           TYPE        BOOLEAN
 * +--------------------------------------------------------------------------------------</SIGNATURE>
@@ -389,106 +543,49 @@ CLASS ZCL_RT_BAU_REVINV IMPLEMENTATION.
 
 
 * <SIGNATURE>---------------------------------------------------------------------------------------+
-* | Instance Private Method ZCL_RT_BAU_REVINV->MOSTRAR_ARCHIVO
-* +-------------------------------------------------------------------------------------------------+
-* +--------------------------------------------------------------------------------------</SIGNATURE>
-  METHOD mostrar_archivo.
-    DATA: go_myobject TYPE REF TO cl_gos_manager,
-          w_logsys    TYPE tbdls-logsys,
-          w_container TYPE REF TO cl_gui_custom_container.
-
-*    CONCATENATE ws_acdos-znumcon ws_acdos-lifnr ws_acdos-abtnr INTO obj-objkey.
-    DATA(objtype) = VALUE saeobjid( gt_cnst[ fname = c_bo_bau ]-low OPTIONAL ).
-    DATA(ip_service) = VALUE sgs_srvnam( gt_cnst[ fname = c_ip_serv_out ]-low OPTIONAL ).
-
-    CHECK objtype IS NOT INITIAL AND ip_service IS NOT INITIAL.
-
-    CALL FUNCTION 'OWN_LOGICAL_SYSTEM_GET'
-      IMPORTING
-        own_logical_system             = w_logsys
-      EXCEPTIONS
-        own_logical_system_not_defined = 1
-        OTHERS                         = 2.
-    IF sy-subrc <> 0.
-      MESSAGE ID sy-msgid TYPE sy-msgty NUMBER sy-msgno
-              WITH sy-msgv1 sy-msgv2 sy-msgv3 sy-msgv4.
-    ENDIF.
-
-    DATA(obj) = VALUE borident( objtype = objtype
-                                objkey = me->get_tabkey_from_sel( )
-                                logsys = w_logsys   ). "Info Object // objtype = nombre del Bisness Object
-
-    CREATE OBJECT go_myobject
-      EXPORTING
-        is_object = obj
-        ip_mode   = 'D' "display
-*       ip_no_commit = 'X' ""attachments should only be saved by own commits
-      EXCEPTIONS
-        OTHERS    = 1.
-* Llama servicio
-    CALL METHOD go_myobject->start_service_direct
-      EXPORTING
-        ip_service       = ip_service
-        is_object        = obj
-        io_container     = w_container
-      EXCEPTIONS
-        no_object        = 1
-        object_invalid   = 2
-        execution_failed = 3
-        OTHERS           = 4.
-    IF sy-subrc <> 0.
-      MESSAGE ID sy-msgid TYPE sy-msgty NUMBER sy-msgno
-                 WITH sy-msgv1 sy-msgv2 sy-msgv3 sy-msgv4.
-    ENDIF.
-  ENDMETHOD.
-
-
-* <SIGNATURE>---------------------------------------------------------------------------------------+
-* | Instance Private Method ZCL_RT_BAU_REVINV->SAVE_DATA
+* | Instance Private Method ZCL_RT_BAU_REVINV_ALV->SAVE_DATA
 * +-------------------------------------------------------------------------------------------------+
 * | [<-->] O_TAB                          TYPE REF TO DATA(optional)
 * | [<-()] I_OK                           TYPE        BOOLEAN
 * +--------------------------------------------------------------------------------------</SIGNATURE>
   METHOD save_data.
-    FIELD-SYMBOLS: <fs_db>  TYPE ANY TABLE,
-                   <fs_out> TYPE ANY TABLE.
+*    FIELD-SYMBOLS: <fs_db>  TYPE ANY TABLE.
 
-    ASSIGN gt_outab->* TO <fs_out>.
-
-    CREATE DATA o_tab LIKE <fs_out>.
-    ASSIGN o_tab->* TO <fs_db>.
-
-*TODO write to db with fs_db
-    <fs_db> = <fs_out>.
+    CHECK gt_to_db IS BOUND.
+*    ASSIGN gt_to_db->* TO <fs_db>.
 
     i_ok = abap_true.
+
+    RAISE EVENT to_save EXPORTING mod_tab = gt_to_db.
   ENDMETHOD.
 
 
 * <SIGNATURE>---------------------------------------------------------------------------------------+
-* | Instance Private Method ZCL_RT_BAU_REVINV->SAVE_SEQUENCE
+* | Instance Private Method ZCL_RT_BAU_REVINV_ALV->SAVE_SEQUENCE
 * +-------------------------------------------------------------------------------------------------+
 * | [<-()] R_OK                           TYPE        BOOLEAN
 * +--------------------------------------------------------------------------------------</SIGNATURE>
   METHOD save_sequence.
     r_ok = abap_true.
+    CHECK gt_to_db IS BOUND.
     IF send_message( i_type_message = 'P'
                  i_conf    = abap_true
-                 i_message = |Grabar los datos?| ) EQ abap_true.
+                 i_message = |{ text-m01 }| ) EQ abap_true.
       IF me->save_data( ) EQ abap_true.
         send_message( i_type_message = 'S'
-                      i_message = |Los datos se grabaron| ).
+                      i_message = |{ text-m02 }| ).
       ELSE.
         send_message( i_type_message = 'E'
-                      i_message = |No se pudo grabar| ).
+                      i_message = |{ text-m03 }| ).
         r_ok = abap_false.
       ENDIF.
     ENDIF.
+
   ENDMETHOD.
 
 
 * <SIGNATURE>---------------------------------------------------------------------------------------+
-* | Instance Private Method ZCL_RT_BAU_REVINV->SEND_MESSAGE
+* | Instance Private Method ZCL_RT_BAU_REVINV_ALV->SEND_MESSAGE
 * +-------------------------------------------------------------------------------------------------+
 * | [--->] I_TYPE_MESSAGE                 TYPE        CHAR1
 * | [--->] I_CONF                         TYPE        BOOLEAN(optional)
@@ -519,19 +616,16 @@ CLASS ZCL_RT_BAU_REVINV IMPLEMENTATION.
 
 
 * <SIGNATURE>---------------------------------------------------------------------------------------+
-* | Instance Private Method ZCL_RT_BAU_REVINV->SET_COLUMNS
+* | Instance Private Method ZCL_RT_BAU_REVINV_ALV->SET_COLUMNS
 * +-------------------------------------------------------------------------------------------------+
 * | [<-->] IO_TABLE                       TYPE REF TO CL_SALV_TABLE
 * +--------------------------------------------------------------------------------------</SIGNATURE>
   METHOD set_columns.
     DATA: lr_columns TYPE REF TO cl_salv_columns_table,
           lr_column  TYPE REF TO cl_salv_column_table.
+
     lr_columns = io_table->get_columns( ).
     lr_columns->set_optimize( abap_true ).
-
-*    PERFORM set_colnumns_technical USING lr_columns.
-
-*... §4 set hotspot column
 
     TRY.
         lr_column ?= lr_columns->get_column( 'MATNR' ).
@@ -546,6 +640,7 @@ CLASS ZCL_RT_BAU_REVINV IMPLEMENTATION.
       CATCH cx_salv_not_found.                          "#EC NO_HANDLER
     ENDTRY.
 
+* Set ICON column
     TRY.
         lr_column ?= lr_columns->get_column( 'ICON' ).
         lr_column->set_icon( if_salv_c_bool_sap=>true ).
@@ -557,7 +652,7 @@ CLASS ZCL_RT_BAU_REVINV IMPLEMENTATION.
 
 
 * <SIGNATURE>---------------------------------------------------------------------------------------+
-* | Instance Private Method ZCL_RT_BAU_REVINV->SET_EDITABLE
+* | Instance Private Method ZCL_RT_BAU_REVINV_ALV->SET_EDITABLE
 * +-------------------------------------------------------------------------------------------------+
 * | [--->] I_FIELDS                       TYPE        T_FIELDS
 * +--------------------------------------------------------------------------------------</SIGNATURE>
@@ -609,6 +704,7 @@ CLASS ZCL_RT_BAU_REVINV IMPLEMENTATION.
 
     lo_grid->set_frontend_fieldcatalog( it_fieldcatalog = lt_fcat ).
 
+    SET HANDLER me->handle_data_changed FOR lo_grid.
 *    lo_grid->check_changed_data( ).
 *   refresh the table
     CALL METHOD lo_grid->refresh_table_display.
@@ -618,7 +714,7 @@ CLASS ZCL_RT_BAU_REVINV IMPLEMENTATION.
 
 
 * <SIGNATURE>---------------------------------------------------------------------------------------+
-* | Instance Private Method ZCL_RT_BAU_REVINV->SET_EVENTS
+* | Instance Private Method ZCL_RT_BAU_REVINV_ALV->SET_EVENTS
 * +-------------------------------------------------------------------------------------------------+
 * | [<-->] IO_TABLE                       TYPE REF TO CL_SALV_TABLE
 * +--------------------------------------------------------------------------------------</SIGNATURE>
@@ -639,11 +735,12 @@ CLASS ZCL_RT_BAU_REVINV IMPLEMENTATION.
 **... §6.5 register to the event LINK_CLICK
 *    SET HANDLER gr_events->on_link_click FOR lr_events.
 
+
   ENDMETHOD.
 
 
 * <SIGNATURE>---------------------------------------------------------------------------------------+
-* | Instance Private Method ZCL_RT_BAU_REVINV->SET_FUNCTIONS
+* | Instance Private Method ZCL_RT_BAU_REVINV_ALV->SET_FUNCTIONS
 * +-------------------------------------------------------------------------------------------------+
 * | [<-->] IO_TABLE                       TYPE REF TO CL_SALV_TABLE
 * +--------------------------------------------------------------------------------------</SIGNATURE>
@@ -668,9 +765,10 @@ CLASS ZCL_RT_BAU_REVINV IMPLEMENTATION.
 
 
 * <SIGNATURE>---------------------------------------------------------------------------------------+
-* | Instance Private Method ZCL_RT_BAU_REVINV->SET_SORT
+* | Instance Private Method ZCL_RT_BAU_REVINV_ALV->SET_SORT
 * +-------------------------------------------------------------------------------------------------+
 * | [--->] I_SORT                         TYPE        CHAR01
+* | [--->] I_NO_REFRESH                   TYPE        BOOLEAN(optional)
 * +--------------------------------------------------------------------------------------</SIGNATURE>
   METHOD set_sort.
 **********************************************************************
@@ -680,7 +778,7 @@ CLASS ZCL_RT_BAU_REVINV IMPLEMENTATION.
 
     DATA(sort) = me->gr_table->get_sorts( ).
     sort->clear( ).
-
+    CLEAR: dist1, dist2, dist3.
     CASE i_sort.
       WHEN '1'.
         TRY.
@@ -689,6 +787,7 @@ CLASS ZCL_RT_BAU_REVINV IMPLEMENTATION.
           CATCH cx_salv_existing.    "
           CATCH cx_salv_data_error.    "
         ENDTRY.
+        dist1 = abap_true.
       WHEN '2'.
         TRY.
             sort->add_sort( columnname = |{ k2 }| ).
@@ -696,6 +795,7 @@ CLASS ZCL_RT_BAU_REVINV IMPLEMENTATION.
           CATCH cx_salv_existing.    "
           CATCH cx_salv_data_error.    "
         ENDTRY.
+        dist2 = abap_true.
       WHEN OTHERS.
         TRY.
             sort->add_sort( EXPORTING
@@ -713,31 +813,39 @@ CLASS ZCL_RT_BAU_REVINV IMPLEMENTATION.
           CATCH cx_salv_existing.    "
           CATCH cx_salv_data_error.    "
         ENDTRY.
+        dist3 = abap_true.
     ENDCASE.
-
-    me->display_alv( ).
+    IF i_no_refresh EQ abap_false.
+      me->display_alv( ).
+    ENDIF.
 **********************************************************************
   ENDMETHOD.
 
 
 * <SIGNATURE>---------------------------------------------------------------------------------------+
-* | Instance Private Method ZCL_RT_BAU_REVINV->UPDATE_ICON
+* | Instance Private Method ZCL_RT_BAU_REVINV_ALV->UPDATE_ICON
 * +-------------------------------------------------------------------------------------------------+
 * | [--->] I_FIELD                        TYPE        STRING
 * | [--->] I_TAB                          TYPE REF TO DATA
 * | [--->] I_FILED                        TYPE        BOOLEAN
 * +--------------------------------------------------------------------------------------</SIGNATURE>
   METHOD update_icon.
-    FIELD-SYMBOLS <fs_intab> TYPE ANY TABLE.
+    FIELD-SYMBOLS: <fs_intab>  TYPE ANY TABLE. "incoming tab
+    DATA out_line TYPE REF TO data.
 
     CHECK i_tab IS BOUND.
 
     ASSIGN i_tab->* TO <fs_intab>.
+
     LOOP AT <fs_intab> ASSIGNING FIELD-SYMBOL(<fs_line>).
       ASSIGN <fs_line>->* TO FIELD-SYMBOL(<fs_st>).
       ASSIGN COMPONENT i_field OF STRUCTURE <fs_st> TO FIELD-SYMBOL(<fs_field>).
+      " modify global master data
       <fs_field> = COND #( WHEN <fs_field> IS ASSIGNED
                       THEN COND icon_d( WHEN i_filed EQ abap_true THEN icon_okay ELSE icon_cancel ) ).
+      " append modified reg to update db
+      GET REFERENCE OF <fs_st> INTO out_line.
+      me->add_to_mod_db( i_line = out_line ).
     ENDLOOP.
 
     me->display_alv( ).
@@ -745,21 +853,19 @@ CLASS ZCL_RT_BAU_REVINV IMPLEMENTATION.
 
 
 * <SIGNATURE>---------------------------------------------------------------------------------------+
-* | Instance Private Method ZCL_RT_BAU_REVINV->USER_COMMANDO
+* | Instance Private Method ZCL_RT_BAU_REVINV_ALV->USER_COMMANDO
 * +-------------------------------------------------------------------------------------------------+
 * | [--->] E_SALV_FUNCTION                LIKE
 * +--------------------------------------------------------------------------------------</SIGNATURE>
   METHOD user_commando.
 
-    IF editable EQ abap_true.
-      me->check_changes( ).
-    ENDIF.
-
-    editable = abap_false.
+*    IF editable EQ abap_true.
+    me->check_changes( ).
+*    ENDIF.
 
     CASE  e_salv_function.
       WHEN 'LOAD'.
-        IF me->carga_archivo( ) EQ abap_true.
+        IF me->atta_carga( ) EQ abap_true.
           update_icon(
             EXPORTING
               i_field = k3
@@ -768,7 +874,7 @@ CLASS ZCL_RT_BAU_REVINV IMPLEMENTATION.
           ).
         ENDIF.
       WHEN 'SHOW'.
-        me->mostrar_archivo( ).
+        me->atta_mostrar( ).
       WHEN 'DIST1'.
         me->set_sort( i_sort = '1' ).
       WHEN 'DIST2'.
@@ -778,7 +884,6 @@ CLASS ZCL_RT_BAU_REVINV IMPLEMENTATION.
       WHEN 'EDIT'.
         DATA(lt_field_to_edit) = VALUE t_fields( ( fields = k1 ) ).
         me->set_editable( i_fields = lt_field_to_edit ).
-        editable = abap_true.
       WHEN 'SAVE'.
         me->save_sequence( ).
       WHEN 'CANCEL' OR 'EXIT'.
