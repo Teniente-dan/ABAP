@@ -1,0 +1,306 @@
+CLASS zcl_rt_bau_revinv_data DEFINITION
+  PUBLIC
+  FINAL
+  CREATE PUBLIC .
+
+  PUBLIC SECTION.
+
+    TYPES:
+      BEGIN OF ty_wcoco,
+        kbeln TYPE  wkbp-kbeln, "cambio de precio
+        matnr TYPE  wkbp-matnr, "Artículo
+        attyp TYPE  mara-attyp, "Catergoría artículo
+        meins TYPE  mara-meins, "UM
+        matkl TYPE  wkbp-matkl, "Gpo. Artículo
+        lifnr TYPE  wkbp-lifnr, "Proveedor
+        pcb   TYPE  konp-kstbw, "PC.Basico
+        pcn   TYPE  konp-kstbw, "PC.Neto
+        pfn   TYPE  konp-kstbw, "Precio Final ant
+        pfa   TYPE  konp-kstbw, "Precio Final nuv
+        psg   TYPE  konp-kstbw, "Precio Sugerido
+        kbetr TYPE  konp-kbetr, "MargBruto
+        wekgr TYPE  maw1-wekgr, "Sec Deter PC
+        mc    TYPE  konp-kbetr, "Metodo Costo
+        file  TYPE  char1,      "Adjunto
+      END OF ty_wcoco .
+    TYPES:
+      BEGIN OF ty_to_alv,
+        kbeln TYPE  wkbp-kbeln, "cambio de precio
+        matnr TYPE  wkbp-matnr, "Artículo
+        attyp TYPE  mara-attyp, "Catergoría artículo
+        meins TYPE  mara-meins, "UM
+        matkl TYPE  wkbp-matkl, "Gpo. Artículo
+        lifnr TYPE  wkbp-lifnr, "Proveedor
+        pcb   TYPE  konp-kstbw, "PC.Basico
+        pcn   TYPE  konp-kstbw, "PC.Neto
+        pfn   TYPE  konp-kstbw, "Precio Final ant
+        pfa   TYPE  konp-kstbw, "Precio Final nuv
+        psg   TYPE  konp-kstbw, "Precio Sugerido
+        kbetr TYPE  konp-kbetr, "MargBruto
+        wekgr TYPE  maw1-wekgr, "Sec Deter PC
+        mc    TYPE  konp-kbetr, "Metodo Costo
+        icon  TYPE  icon_d,     "Adjunto X-OK
+        file  TYPE  string,     "TECH file key
+        idx   TYPE  i,          "TECH
+      END OF ty_to_alv .
+    TYPES:
+      tt_to_alv TYPE STANDARD TABLE OF ty_to_alv WITH NON-UNIQUE KEY kbeln matkl lifnr .
+    TYPES:
+      BEGIN OF ty_result,
+        lifnr TYPE wkbp-lifnr,
+        mc    TYPE  konp-kbetr,
+      END OF ty_result .
+    TYPES:
+      tt_result TYPE SORTED TABLE OF ty_result WITH NON-UNIQUE KEY lifnr .
+
+    METHODS constructor
+      IMPORTING
+        !i_tab TYPE tt_to_alv .
+  PROTECTED SECTION.
+  PRIVATE SECTION.
+
+    DATA gt_tab_to_show TYPE tt_result .
+
+    METHODS handle_to_update
+          FOR EVENT to_update OF zcl_rt_bau_revinv_alv
+      IMPORTING
+          !e_to_update
+          !e_info.
+    METHODS handle_to_end
+          FOR EVENT to_end OF zcl_rt_bau_revinv_alv
+      IMPORTING
+          !sender
+          !e_to_end .
+    METHODS set_data_to_alv
+      RETURNING
+        VALUE(r_tab) TYPE tt_to_alv .
+    METHODS save_data
+      IMPORTING
+        !i_tab      TYPE tt_to_alv
+      RETURNING
+        VALUE(r_ok) TYPE boolean .
+    METHODS set_no_option
+      RETURNING
+        VALUE(r_no_option) TYPE boolean .
+    METHODS val_data
+      IMPORTING
+        !i_tab      TYPE tt_to_alv
+      RETURNING
+        VALUE(r_ok) TYPE boolean .
+    METHODS handle_to_val
+          FOR EVENT to_val OF zcl_rt_bau_revinv_alv
+      IMPORTING
+          !e_to_val
+          !sender .
+    METHODS handle_to_save
+          FOR EVENT to_save OF zcl_rt_bau_revinv_alv
+      IMPORTING
+          !mod_tab
+          !sender .
+    METHODS load_cnst .
+ENDCLASS.
+
+
+
+CLASS ZCL_RT_BAU_REVINV_DATA IMPLEMENTATION.
+
+
+* <SIGNATURE>---------------------------------------------------------------------------------------+
+* | Instance Public Method ZCL_RT_BAU_REVINV_DATA->CONSTRUCTOR
+* +-------------------------------------------------------------------------------------------------+
+* | [--->] I_TAB                          TYPE        TT_TO_ALV
+* +--------------------------------------------------------------------------------------</SIGNATURE>
+  METHOD constructor.
+    DATA: lt_to_alv   TYPE tt_to_alv,
+          data_to_alv TYPE REF TO data.
+    DATA: tipo_bon TYPE string,
+          motivo   TYPE string,
+          dist     TYPE char1.
+
+*TODO:
+*  validar si es gran barata
+    DATA(no_option) = set_no_option( ).
+
+    CALL FUNCTION 'ZMF_RT_BAU_VKPX_200'
+      EXPORTING
+        i_screen_call = '200'
+*       i_tab_to_show =
+        i_no_option   = no_option   " Variable booleana (X=verdadero, -=falso, space=descon.)
+      IMPORTING
+        r_tipo_bon    = tipo_bon
+        r_motivo      = motivo
+        r_dist        = dist.    " Prov. 1 ; Prov/Sección 2
+
+    DATA(key_to_alv) = VALUE zcl_rt_bau_revinv_alv=>tt_fields(
+      ( field = 'KBELN' key = abap_true sort = 1 )
+      ( field = 'LIFNR' key = abap_true sort = 2 )
+      ( field = 'MATKL' key = abap_true sort = COND #( WHEN dist EQ 2 THEN 3 ) )
+      ( field = 'MC'    edit = abap_true )
+      ( field = 'ICON'  text = |Archivo| icon = abap_true )
+      ( field = 'PCB'   text = |PC.Basico| )
+      ( field = 'PCN'   text = |PC.Neto| )
+      ( field = 'PFN'   text = |Precio Final ant| )
+      ( field = 'PFA'   text = |Precio Final nuv| )
+      ( field = 'PSG'   text = |Precio Sugerido| )
+      ( field = 'KBETR' text = |MargBruto| )
+      ( field = 'IDX'   key = abap_true idx = abap_true tech = abap_true  )
+      ( field = 'FILE'  tech = abap_true  )
+    ).
+
+    lt_to_alv = set_data_to_alv( ).
+    GET REFERENCE OF lt_to_alv INTO data_to_alv.
+
+    DATA(go_alv) = NEW zcl_rt_bau_revinv_alv(
+        i_tab_to_alv = data_to_alv
+        i_key_fields = key_to_alv
+        i_status = COND #( WHEN no_option EQ abap_true THEN |REVINV_POPUP| ELSE |REVINV_POPUP_NO_EDIT| )
+    ).
+    SET HANDLER me->handle_to_save FOR go_alv.
+    SET HANDLER me->handle_to_val FOR go_alv.
+    SET HANDLER me->handle_to_update FOR go_alv.
+    SET HANDLER me->handle_to_end FOR go_alv.
+*
+    go_alv->display_alv( i_no_refresh = abap_true ).
+
+    CALL FUNCTION 'ZMF_RT_BAU_VKPX_200'
+      EXPORTING
+        i_screen_call = '300'
+        i_tab_to_show = gt_tab_to_show
+        i_no_option   = no_option    " Variable booleana (X=verdadero, -=falso, space=descon.)
+*      IMPORTING
+*       r_tipo_bon    =
+*       r_motivo      =
+*       r_dist        =     " Prov. 1 ; Prov/Sección 2
+      .
+
+  ENDMETHOD.
+
+
+* <SIGNATURE>---------------------------------------------------------------------------------------+
+* | Instance Private Method ZCL_RT_BAU_REVINV_DATA->HANDLE_TO_END
+* +-------------------------------------------------------------------------------------------------+
+* | [--->] SENDER                         LIKE
+* | [--->] E_TO_END                       LIKE
+* +--------------------------------------------------------------------------------------</SIGNATURE>
+  METHOD handle_to_end.
+    FIELD-SYMBOLS <fs_tab> TYPE tt_to_alv.
+    ASSIGN e_to_end->* TO <fs_tab>.
+    gt_tab_to_show = CORRESPONDING #( <fs_tab> ).
+  ENDMETHOD.
+
+
+* <SIGNATURE>---------------------------------------------------------------------------------------+
+* | Instance Private Method ZCL_RT_BAU_REVINV_DATA->HANDLE_TO_SAVE
+* +-------------------------------------------------------------------------------------------------+
+* | [--->] MOD_TAB                        LIKE
+* | [--->] SENDER                         LIKE
+* +--------------------------------------------------------------------------------------</SIGNATURE>
+  METHOD handle_to_save.
+    DATA(ls) = mod_tab.
+    FIELD-SYMBOLS <ft_in> TYPE tt_to_alv.
+    ASSIGN mod_tab->* TO <ft_in>.
+    sender->set_data_saved( i_save_ok = me->save_data( i_tab = <ft_in> ) ).
+  ENDMETHOD.
+
+
+* <SIGNATURE>---------------------------------------------------------------------------------------+
+* | Instance Private Method ZCL_RT_BAU_REVINV_DATA->HANDLE_TO_UPDATE
+* +-------------------------------------------------------------------------------------------------+
+* | [--->] E_TO_UPDATE                    LIKE
+* | [--->] E_INFO                         LIKE
+* +--------------------------------------------------------------------------------------</SIGNATURE>
+  METHOD handle_to_update.
+    FIELD-SYMBOLS <f_line> TYPE ty_to_alv.
+    ASSIGN e_to_update->* TO <f_line>.
+    <f_line>-icon = icon_okay.
+    <f_line>-file = e_info.
+  ENDMETHOD.
+
+
+* <SIGNATURE>---------------------------------------------------------------------------------------+
+* | Instance Private Method ZCL_RT_BAU_REVINV_DATA->HANDLE_TO_VAL
+* +-------------------------------------------------------------------------------------------------+
+* | [--->] E_TO_VAL                       LIKE
+* | [--->] SENDER                         LIKE
+* +--------------------------------------------------------------------------------------</SIGNATURE>
+  METHOD handle_to_val.
+    FIELD-SYMBOLS <ft_in> TYPE tt_to_alv.
+    ASSIGN e_to_val->* TO <ft_in>.
+    sender->set_val_ok( me->val_data( i_tab = <ft_in> ) ).
+  ENDMETHOD.
+
+
+* <SIGNATURE>---------------------------------------------------------------------------------------+
+* | Instance Private Method ZCL_RT_BAU_REVINV_DATA->LOAD_CNST
+* +-------------------------------------------------------------------------------------------------+
+* +--------------------------------------------------------------------------------------</SIGNATURE>
+  METHOD load_cnst.
+  ENDMETHOD.
+
+
+* <SIGNATURE>---------------------------------------------------------------------------------------+
+* | Instance Private Method ZCL_RT_BAU_REVINV_DATA->SAVE_DATA
+* +-------------------------------------------------------------------------------------------------+
+* | [--->] I_TAB                          TYPE        TT_TO_ALV
+* | [<-()] R_OK                           TYPE        BOOLEAN
+* +--------------------------------------------------------------------------------------</SIGNATURE>
+  METHOD save_data.
+*TODO write to DB
+    r_ok = abap_true.
+  ENDMETHOD.
+
+
+* <SIGNATURE>---------------------------------------------------------------------------------------+
+* | Instance Private Method ZCL_RT_BAU_REVINV_DATA->SET_DATA_TO_ALV
+* +-------------------------------------------------------------------------------------------------+
+* | [<-()] R_TAB                          TYPE        TT_TO_ALV
+* +--------------------------------------------------------------------------------------</SIGNATURE>
+  METHOD set_data_to_alv.
+    DATA(kbeln) = |0123456789|.
+    DATA(matkl) = |123|.
+    DATA(matkl1) = |456|.
+    DATA(lifnr) = |2290|.
+    DATA(lifnr1) = |1030|.
+    DATA(matnr) = '000000000000000001'.
+    DATA(file) = abap_false.
+*    DATA(out_tab) = VALUE tt_to_alv(
+    r_tab = VALUE #(
+              kbeln = kbeln
+              icon = COND #( WHEN file EQ abap_true THEN icon_okay ELSE icon_cancel )
+                                    (  matnr = matnr matkl = matkl lifnr = lifnr  )
+                                    (  matnr = matnr matkl = matkl lifnr = lifnr1 )
+
+                                    (  matnr = matnr matkl = matkl1 lifnr = lifnr1  )
+                                    (  matnr = matnr matkl = matkl1 lifnr = lifnr  )
+                                     ).
+
+
+*    DATA out_tab_ref TYPE REF TO data.
+
+  ENDMETHOD.
+
+
+* <SIGNATURE>---------------------------------------------------------------------------------------+
+* | Instance Private Method ZCL_RT_BAU_REVINV_DATA->SET_NO_OPTION
+* +-------------------------------------------------------------------------------------------------+
+* | [<-()] R_NO_OPTION                    TYPE        BOOLEAN
+* +--------------------------------------------------------------------------------------</SIGNATURE>
+  METHOD set_no_option.
+    r_no_option = abap_false.
+  ENDMETHOD.
+
+
+* <SIGNATURE>---------------------------------------------------------------------------------------+
+* | Instance Private Method ZCL_RT_BAU_REVINV_DATA->VAL_DATA
+* +-------------------------------------------------------------------------------------------------+
+* | [--->] I_TAB                          TYPE        TT_TO_ALV
+* | [<-()] R_OK                           TYPE        BOOLEAN
+* +--------------------------------------------------------------------------------------</SIGNATURE>
+  METHOD val_data.
+    LOOP AT i_tab REFERENCE INTO DATA(line).
+      IF line->*-icon NE icon_okay.
+        RETURN.
+      ENDIF.
+    ENDLOOP.
+  ENDMETHOD.
+ENDCLASS.
