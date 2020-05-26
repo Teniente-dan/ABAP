@@ -1,24 +1,24 @@
-CLASS zcl_rt_bau_revinv_data DEFINITION
-  PUBLIC
-  FINAL
-  CREATE PUBLIC .
+class ZCL_RT_BAU_REVINV_DATA definition
+  public
+  final
+  create public .
 
-  PUBLIC SECTION.
+public section.
 
-    INTERFACES zif_rt_bau_rep_acc
-      ALL METHODS FINAL .
+  interfaces ZIF_RT_BAU_REP_ACC
+      all methods final .
 
-    TYPES:
-      BEGIN OF ty_result,
+  types:
+    BEGIN OF ty_result,
         lifnr TYPE wkbp-lifnr,
         mc    TYPE  konp-kbetr,
       END OF ty_result .
-    TYPES:
-      tt_result TYPE SORTED TABLE OF ty_result WITH NON-UNIQUE KEY lifnr .
+  types:
+    tt_result TYPE SORTED TABLE OF ty_result WITH NON-UNIQUE KEY lifnr .
 
-    METHODS constructor
-      IMPORTING
-        !i_tab TYPE REF TO data .
+  methods CONSTRUCTOR
+    importing
+      !I_TAB type ref to DATA .
   PROTECTED SECTION.
 PRIVATE SECTION.
 
@@ -36,12 +36,9 @@ PRIVATE SECTION.
       pfa    TYPE  konp-kstbw, "Precio Final nuv
       psg    TYPE  konp-kstbw, "Precio Sugerido
       kbetr  TYPE  konp-kbetr, "MargBruto
-      vkerv  TYPE  bwkbp-vkerv, "Sec Deter PC
-*      wekgr  TYPE  maw1-wekgr, "Sec Deter PC
-      secc   TYPE  zrt_rcmp-secc, "Sec Deter PC
+      wekgr  TYPE  maw1-wekgr, "Sec Deter PC
       mc     TYPE  konp-kbetr, "Metodo Costo
       icon   TYPE  icon_d,     "Adjunto X-OK
-      icon1  TYPE  icon_d,     "Adjunto X-OK
       sap_ob TYPE  saeanwdid,  "TECH objectd id
       file   TYPE  saeobjid,   "TECH file id
       new_f  TYPE  boolean,    "TECH new file
@@ -50,9 +47,8 @@ PRIVATE SECTION.
   TYPES:
     tt_to_alv TYPE STANDARD TABLE OF ty_to_alv WITH NON-UNIQUE KEY kbeln matkl lifnr .
   TYPES:
-    tt_input     TYPE SORTED TABLE OF bwkbp WITH NON-UNIQUE DEFAULT KEY .
-  TYPES:
-    tt_input_std TYPE STANDARD TABLE OF bwkbp .
+    tt_input     TYPE SORTED TABLE OF bwkbp WITH NON-UNIQUE DEFAULT KEY,
+    tt_input_std TYPE STANDARD TABLE OF bwkbp.
   TYPES:
     BEGIN OF ty_control,
       tipo_bon TYPE string,
@@ -69,12 +65,6 @@ PRIVATE SECTION.
   DATA gt_to_alv TYPE tt_to_alv .
   DATA gt_tab_to_show TYPE tt_result .
 
-  METHODS is_same
-    IMPORTING
-      !i_wa       TYPE string
-    RETURNING
-      VALUE(r_ok) TYPE boolean .
-  METHODS clear_data .
   METHODS handle_to_message
         FOR EVENT to_message OF zcl_rt_bau_revinv_alv
     IMPORTING
@@ -125,12 +115,6 @@ PRIVATE SECTION.
     IMPORTING
         !mod_tab
         !sender .
-  METHODS handle_to_group
-        FOR EVENT to_group OF zcl_rt_bau_revinv_alv
-    IMPORTING
-        !e_regs
-        !e_function
-        !sender .
   METHODS load_cnst
     RETURNING
       VALUE(r_ok) TYPE boolean .
@@ -139,18 +123,6 @@ ENDCLASS.
 
 
 CLASS ZCL_RT_BAU_REVINV_DATA IMPLEMENTATION.
-
-
-* <SIGNATURE>---------------------------------------------------------------------------------------+
-* | Instance Private Method ZCL_RT_BAU_REVINV_DATA->CLEAR_DATA
-* +-------------------------------------------------------------------------------------------------+
-* +--------------------------------------------------------------------------------------</SIGNATURE>
-  METHOD clear_data.
-    CLEAR:
-    gs_control,
-    gt_saved,
-    gt_tab_to_show.
-  ENDMETHOD.
 
 
 * <SIGNATURE>---------------------------------------------------------------------------------------+
@@ -175,7 +147,6 @@ CLASS ZCL_RT_BAU_REVINV_DATA IMPLEMENTATION.
     CHECK in_doc IS NOT INITIAL.
 *Permite cancelar el proceso y regresar a la pantalla de opcion de bonificación
     WHILE gv_curr_ans = 'A'. "A = Cancelar - Popup
-      clear_data( ).
 *Registra manejador para evento de respuesta de mensajes
       SET HANDLER me->handle_to_message.
 *Llama pantalla "Aplica bonificación?" por FM
@@ -194,12 +165,10 @@ CLASS ZCL_RT_BAU_REVINV_DATA IMPLEMENTATION.
       DATA(key_to_alv) = VALUE zcl_rt_bau_revinv_alv=>tt_fields(
         ( field = 'KBELN' key = abap_true sort = 1 )
         ( field = 'LIFNR' key = abap_true sort = 2 )
-        ( field = 'MATKL' key = abap_true sort = COND #( WHEN gs_control-dist EQ 2 THEN 3 ) sort_ex = abap_true )
-        ( field = 'MATNR' key = abap_true sort1 = 1 )
+        ( field = 'MATKL' key = abap_true sort = COND #( WHEN gs_control-dist EQ 2 THEN 3 ) )
         ( field = 'IDX'   key = abap_true idx = abap_true tech = abap_true  )
-        ( field = 'MC'    text = |% Apoyo| edit = abap_true )
-        ( field = 'ICON'  text = |Arch.{ COND #( WHEN gs_control-dist EQ 2 THEN 'Prov.Secc.' ELSE 'Proveedor' ) }|  icon = abap_true )
-        ( field = 'ICON1' text = |Arch.Artículo|  icon = abap_true )
+        ( field = 'MC'    edit = abap_true )
+        ( field = 'ICON'  text = |Archivo| icon = abap_true )
         ( field = 'PCB'   text = |PC.Basico| )
         ( field = 'PCN'   text = |PC.Neto| )
         ( field = 'PFN'   text = |Precio Final ant| )
@@ -218,15 +187,11 @@ CLASS ZCL_RT_BAU_REVINV_DATA IMPLEMENTATION.
           i_key_fields = key_to_alv
           i_status = COND #( WHEN no_option EQ abap_true THEN |REVINV_POPUP_NO_EDIT| ELSE |REVINV_POPUP| )
       ).
-      IF NOT go_alv->is_ready( ) EQ abap_true.
-        EXIT.
-      ENDIF.
 *Registro para manejadores de eventos del objeto ALV
-      SET HANDLER me->handle_to_save FOR go_alv.  "Para grabar
-      SET HANDLER me->handle_to_val FOR go_alv.   "Para validar
+      SET HANDLER me->handle_to_save FOR go_alv. "Para grabar
+      SET HANDLER me->handle_to_val FOR go_alv.  "Para validar
       SET HANDLER me->handle_to_update FOR go_alv."Para actualizar
-      SET HANDLER me->handle_to_end FOR go_alv.   "Para finalizar
-      SET HANDLER me->handle_to_group FOR go_alv. "Para agrupar
+      SET HANDLER me->handle_to_end FOR go_alv. "Para finalizar
 **********************************************************************
       go_alv->display_alv( i_no_refresh = abap_true ).
 **********************************************************************
@@ -258,34 +223,6 @@ CLASS ZCL_RT_BAU_REVINV_DATA IMPLEMENTATION.
     ASSIGN e_to_end->* TO <fs_tab>.
 *Tabla de resultados para pantalla resumen
     gt_tab_to_show = CORRESPONDING #( <fs_tab> ).
-  ENDMETHOD.
-
-
-* <SIGNATURE>---------------------------------------------------------------------------------------+
-* | Instance Private Method ZCL_RT_BAU_REVINV_DATA->HANDLE_TO_GROUP
-* +-------------------------------------------------------------------------------------------------+
-* | [--->] E_REGS                         LIKE
-* | [--->] E_FUNCTION                     LIKE
-* | [--->] SENDER                         LIKE
-* +--------------------------------------------------------------------------------------</SIGNATURE>
-  METHOD handle_to_group.
-    FIELD-SYMBOLS: <alvtab> TYPE tt_to_alv.
-    ASSIGN sender->gt_outab->* TO <alvtab>.
-    DATA(cond) = |kbeln = line-kbeln AND lifnr = line-lifnr {
-                  COND #( WHEN gs_control-dist EQ 2 THEN 'AND matkl = line-matkl' ) }|.
-    DATA(line) = VALUE #( <alvtab>[ VALUE #( e_regs[ 1 ] OPTIONAL ) ] OPTIONAL ).
-    IF e_function = 1." OR line-file CS line-matnr.
-      sender->set_group_regs( i_group_regs = VALUE #( ( idx = e_regs[ 1 ] sort_type = 1 ) ) ).
-    ELSE.
-      sender->set_group_regs( i_group_regs =
-      REDUCE #( INIT regs = VALUE zcl_rt_bau_revinv_alv=>tt_group( ( idx = e_regs[ 1 ] sort_type = 0 ) )
-                FOR reg IN REDUCE tt_to_alv(  INIT matnrs TYPE tt_to_alv
-                                              FOR <wa> IN <alvtab> INDEX INTO tab_idx WHERE (cond)
-                                              NEXT matnrs = COND tt_to_alv( WHEN <wa>-file CS <wa>-matnr
-                                                                            THEN VALUE tt_to_alv(
-                                                                                  BASE matnrs ( idx = tab_idx ) ) ) )
-                NEXT regs = VALUE #( BASE regs ( idx = reg-idx sort_type = 1 ) ) ) ).
-    ENDIF.
   ENDMETHOD.
 
 
@@ -323,12 +260,10 @@ CLASS ZCL_RT_BAU_REVINV_DATA IMPLEMENTATION.
 * | [--->] SENDER                         LIKE
 * +--------------------------------------------------------------------------------------</SIGNATURE>
   METHOD handle_to_update.
-    FIELD-SYMBOLS: <f_line> TYPE ty_to_alv.
+    FIELD-SYMBOLS <f_line> TYPE ty_to_alv.
     ASSIGN e_to_update->* TO <f_line>.
-    DATA(fn) = COND #( WHEN e_info CS <f_line>-matnr THEN 1 ).
 *Actualiza la linea del ALV
-    <f_line>-icon = COND #( WHEN fn EQ 1 THEN || ELSE icon_okay ).
-    <f_line>-icon1 = COND #( WHEN <f_line>-icon IS INITIAL THEN icon_okay ).
+    <f_line>-icon = icon_okay.
 *URI de archivo se arma con SAP_ob + file
     <f_line>-sap_ob = VALUE #( sender->gt_cnst[ fname = zcl_rt_bau_revinv_alv=>c_bo_bau ]-low OPTIONAL ).
     <f_line>-file = e_info.
@@ -351,16 +286,6 @@ CLASS ZCL_RT_BAU_REVINV_DATA IMPLEMENTATION.
 
 
 * <SIGNATURE>---------------------------------------------------------------------------------------+
-* | Instance Private Method ZCL_RT_BAU_REVINV_DATA->IS_SAME
-* +-------------------------------------------------------------------------------------------------+
-* | [--->] I_WA                           TYPE        STRING
-* | [<-()] R_OK                           TYPE        BOOLEAN
-* +--------------------------------------------------------------------------------------</SIGNATURE>
-  method IS_SAME.
-  endmethod.
-
-
-* <SIGNATURE>---------------------------------------------------------------------------------------+
 * | Instance Private Method ZCL_RT_BAU_REVINV_DATA->LOAD_CNST
 * +-------------------------------------------------------------------------------------------------+
 * | [<-()] R_OK                           TYPE        BOOLEAN
@@ -379,7 +304,7 @@ CLASS ZCL_RT_BAU_REVINV_DATA IMPLEMENTATION.
 *                       ( fname = c_ip_serv_out numb = 1 low = 'ARL_LINK' ) ).
 
 *    IF lines( gt_cnst ) IS NOT INITIAL.
-    r_ok = abap_true.
+      r_ok = abap_true.
 *    ENDIF.
   ENDMETHOD.
 
@@ -391,28 +316,23 @@ CLASS ZCL_RT_BAU_REVINV_DATA IMPLEMENTATION.
 * | [<-()] R_TAB                          TYPE        TT_INPUT
 * +--------------------------------------------------------------------------------------</SIGNATURE>
   METHOD process_data.
-*    FIELD-SYMBOLS <fs_intab> TYPE tt_input_std.
-*    ASSIGN i_tab->* TO <fs_intab>.
-*    r_tab = VALUE #( FOR wa IN <fs_intab> ( wa ) ).
+    FIELD-SYMBOLS <fs_intab> TYPE tt_input_std.
+    ASSIGN i_tab->* TO <fs_intab>.
+    r_tab = VALUE #( FOR wa IN <fs_intab> ( wa ) ).
 
 *BORRAR TEST
-    DATA(kbeln) = |1234567890|.
-    DATA(matkl) = |123|.
-    DATA(matkl1) = |456|.
-    DATA(lifnr) = |2290|.
-    DATA(lifnr1) = |1030|.
-    DATA(matnr) = '100000000000000001'.
-    DATA(matnr0) = '100000000500000000'.
-    DATA(matnr1) = '200000000000000002'.
-    DATA(matnr2) = '300000000000000003'.
-    DATA(matnr3) = '400000000000000004'.
-    r_tab = VALUE #( kbeln = kbeln
-                                    (  matnr = matnr    matkl = matkl   lifnr = lifnr  )
-                                    (  matnr = matnr0   matkl = matkl   lifnr = lifnr  )
-
-                                    (  matnr = matnr1   matkl = matkl1   lifnr = lifnr1 )
-                                    (  matnr = matnr2   matkl = matkl1   lifnr = lifnr1  )
-                                    (  matnr = matnr3   matkl = matkl1   lifnr = lifnr  ) ).
+*    DATA(kbeln) = |0123456789|.
+*    DATA(matkl) = |123|.
+*    DATA(matkl1) = |456|.
+*    DATA(lifnr) = |2290|.
+*    DATA(lifnr1) = |1030|.
+*    DATA(matnr) = '000000000000000001'.
+*    r_tab = VALUE #( kbeln = kbeln
+*                                    (  matnr = matnr matkl = matkl lifnr = lifnr  )
+*                                    (  matnr = matnr matkl = matkl lifnr = lifnr1 )
+*
+*                                    (  matnr = matnr matkl = matkl1 lifnr = lifnr1  )
+*                                    (  matnr = matnr matkl = matkl1 lifnr = lifnr  ) ).
   ENDMETHOD.
 
 
@@ -435,10 +355,6 @@ CLASS ZCL_RT_BAU_REVINV_DATA IMPLEMENTATION.
                         tipo_bon = gs_control-tipo_bon
                       ( matnr = wa-matnr
                         pct_ap = wa-mc
-
-                        secc = wa-secc
-                        vkerv = wa-vkerv
-
                         sap_object = wa-sap_ob
                         object_id = wa-file ) ).
 
@@ -453,10 +369,6 @@ CLASS ZCL_RT_BAU_REVINV_DATA IMPLEMENTATION.
                           tipo_bon = gs_control-tipo_bon
                         ( matnr = wa-matnr
                           pct_ap = wa-mc
-
-                          secc = wa-secc
-                          vkerv = wa-vkerv
-
                           sap_object = wa-sap_ob
                           object_id = wa-file ) ).
 
@@ -484,44 +396,18 @@ CLASS ZCL_RT_BAU_REVINV_DATA IMPLEMENTATION.
 * | [<-()] R_TAB                          TYPE        TT_TO_ALV
 * +--------------------------------------------------------------------------------------</SIGNATURE>
   METHOD set_data_to_alv.
-    TYPES: BEGIN OF ty_matnr,
-             matnr TYPE matnr,
-             attyp TYPE attyp,
-           END OF ty_matnr,
-           tt_matnr TYPE SORTED TABLE OF ty_matnr WITH NON-UNIQUE KEY matnr.
     DATA(file) = abap_false.
-*Recupera ATTYP
-    DATA(lt_matnr) = CORRESPONDING tt_matnr( i_tab ).
-    DELETE ADJACENT DUPLICATES FROM lt_matnr.
-    SELECT matnr, attyp FROM mara INTO TABLE @lt_matnr FOR ALL ENTRIES IN @lt_matnr WHERE matnr = @lt_matnr-matnr.
 *Recupera información de acc
     r_tab = VALUE #( LET acc = zif_rt_bau_rep_acc~get_acc( ) IN
     FOR wa IN i_tab
     LET
     acc_line = VALUE #( acc[ lifnr = wa-lifnr matkl = wa-matkl ] OPTIONAL )
-    mara_line = VALUE #( lt_matnr[ matnr = wa-matnr ] OPTIONAL )
     IN
     ( kbeln = wa-kbeln matnr = wa-matnr matkl = wa-matkl lifnr = wa-lifnr
 *Acc trae URI de archivo
-    mc = acc_line-mc
-    icon = COND #( WHEN acc_line-file IS NOT INITIAL THEN icon_okay ELSE icon_cancel )
-
-    attyp = mara_line-attyp "Catergoría artículo
-    meins = wa-vrkme "UM
-
-    pcb = wa-ekpgr "PC.Basico
-    pcn = wa-ekpnn "PC.Neto
-    pfn = wa-endpa "INIPR Precio Final ant
-    pfa = wa-rotpr "Precio Final nuv
-    psg = wa-rotpr "Precio Sugerido
-    kbetr = wa-spaba / 10 "MargBruto
-
-    vkerv = wa-vkerv "Sec Deter PC
-
-    secc = wa-matkl "Sec Deter PC
-
-    )
-    ).
+      mc = acc_line-mc
+      icon = COND #( WHEN acc_line-file IS NOT INITIAL THEN icon_okay ELSE icon_cancel ) )
+      ).
   ENDMETHOD.
 
 
