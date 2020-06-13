@@ -1,0 +1,155 @@
+CLASS zcl_so_to_bdc DEFINITION
+  PUBLIC
+  FINAL
+  CREATE PRIVATE.
+
+  PUBLIC SECTION.
+    TYPES: BEGIN OF ty_val,
+             low  TYPE string,
+             high TYPE string,
+*           include type boolean,
+*           exclude type boolean,
+           END OF ty_val,
+           tt_val TYPE STANDARD TABLE OF ty_val WITH EMPTY KEY,
+           BEGIN OF ty_field,
+             f_name TYPE string,
+             f_pos  TYPE c LENGTH 3,
+             t_val  TYPE tt_val,
+           END OF ty_field,
+           BEGIN OF ty_conf,
+             p_name TYPE string,
+             cont   TYPE STANDARD TABLE OF ty_field WITH EMPTY KEY,
+           END OF ty_conf,
+           tt_conf TYPE ty_conf.
+    CLASS-METHODS get_transformation
+      IMPORTING i_conf       TYPE tt_conf
+      RETURNING VALUE(r_tab) TYPE bdcdata_tab.
+  PROTECTED SECTION.
+  PRIVATE SECTION.
+    CONSTANTS:
+      c_cur TYPE string VALUE 'BDC_CURSOR',
+      c_cd  TYPE  string VALUE 'BDC_CODE',
+      c_ok  TYPE  string VALUE 'BDC_OKCODE',
+      c_so  TYPE string VALUE 'SAPLALDB'.
+    TYPES: BEGIN OF ty_ref,
+             line_ref TYPE string,
+             tfm      TYPE REF TO zcl_so_to_bdc,
+           END OF ty_ref.
+    CLASS-DATA: gt_ref TYPE STANDARD TABLE OF ty_ref.
+    DATA: gt_conf TYPE tt_conf,
+          t_bdc   TYPE bdcdata_tab.
+
+    METHODS:
+      tfm_build CHANGING ch_tab TYPE STANDARD TABLE,
+      get_header
+        IMPORTING REFERENCE(i_head) TYPE string OPTIONAL
+                  i_so              TYPE boolean OPTIONAL
+        RETURNING VALUE(r_tab)      TYPE bdcdata_tab,
+      get_bdc_action
+        IMPORTING REFERENCE(i_acc) TYPE string
+                  REFERENCE(i_val) TYPE string OPTIONAL
+                  i_page           TYPE c OPTIONAL
+        RETURNING VALUE(r_tab)     TYPE bdcdata_tab,
+      get_par
+        IMPORTING REFERENCE(i_par) TYPE string
+        RETURNING VALUE(r_tab)     TYPE bdcdata_tab,
+      get_range
+        IMPORTING REFERENCE(i_range) TYPE string
+        RETURNING VALUE(r_tab)       TYPE bdcdata_tab.
+
+ENDCLASS.
+
+
+
+CLASS zcl_so_to_bdc IMPLEMENTATION.
+  METHOD get_header.
+    r_tab = COND #( WHEN i_so IS INITIAL
+                    THEN VALUE #( ( program = i_head dynpro = '1000' dynbegin = 'X' ) )
+                    ELSE VALUE #( ( program = c_so dynpro = '3000' dynbegin = 'X' ) ) ).
+  ENDMETHOD.
+
+  METHOD get_bdc_action.
+    SPLIT i_val AT '-' INTO: DATA(fld) DATA(rest).
+    r_tab = SWITCH #( i_acc
+                        WHEN c_cur
+                        THEN VALUE #( ( fnam = i_acc fval = i_val )
+                                      ( fnam = c_ok fval = |=%{ gt_conf-cont[ f_name = fld ]-f_pos }| ) )
+                        WHEN c_cd
+                        THEN VALUE #( ( fnam = i_acc fval = SWITCH #(  i_page
+                                                                          WHEN '+' THEN '=P+'
+*                                                                          WHEN 'i' THEN '=INTL'
+                                                                          WHEN 'a' THEN '=ACPT' ) ) ) ) .
+  ENDMETHOD.
+
+  METHOD get_par.
+    r_tab = REDUCE #( LET conf = VALUE tt_val( FOR <fs> IN gt_conf-cont[ f_name = i_par ]-t_val
+                                               WHERE ( high IS INITIAL )
+                                               ( <fs> ) ) IN
+                        INIT tab TYPE bdcdata_tab
+                        idx = 0
+                        conf_l = lines( conf )
+                        FOR <fs> IN conf
+                        NEXT
+                        conf_l = conf_l - 1
+                        idx = COND #( WHEN idx > 7 THEN 1 ELSE idx + 1 )
+                        tab = COND #( WHEN idx EQ 1
+                                      THEN VALUE #( LET hed = get_bdc_action(
+                                                        i_acc  = c_cd
+                                                        i_page  = COND char1( WHEN conf_l >= 8 THEN |+| ELSE |a| ) ) IN
+                                            BASE tab ( fnam = hed[ 1 ]-fnam fval = hed[ 1 ]-fval )
+                                                       ( fnam = |RSCSEL_255-SLOW_I(0{ idx })| fval = <fs>-low ) )
+                                      ELSE VALUE #( BASE tab
+                                                       ( fnam = |RSCSEL_255-SLOW_I(0{ idx })| fval = <fs>-low ) )
+                                                       )
+                        ).
+  ENDMETHOD.
+
+  METHOD get_range.
+    r_tab = REDUCE #( LET conf = VALUE tt_val( FOR <fs> IN gt_conf-cont[ f_name = i_range ]-t_val
+                                               WHERE ( NOT high IS INITIAL )
+                                               ( <fs> ) ) IN
+                      INIT tab TYPE bdcdata_tab
+                      idx = 0
+                      conf_l = lines( conf )
+                      FOR <fs> IN conf
+                      NEXT
+                      conf_l = conf_l - 1
+                      idx = COND #( WHEN idx > 7 THEN 1 ELSE idx + 1 )
+                      tab = COND #( WHEN idx EQ 1
+                                    THEN VALUE #( LET hed = get_bdc_action(
+                                                      i_acc  = c_cd
+                                                      i_page  = COND char1( WHEN conf_l >= 8 THEN |+| ELSE |a| ) ) IN
+                                          BASE tab ( fnam = hed[ 1 ]-fnam fval = hed[ 1 ]-fval )
+                                                     ( fnam = |RSCSEL_255-ILOW_I(0{ idx })| fval = <fs>-low )
+                                                     ( fnam = |RSCSEL_255-IHIGH_I(0{ idx })| fval = <fs>-high ) )
+                                    ELSE VALUE #( BASE tab
+                                                     ( fnam = |RSCSEL_255-ILOW_I(0{ idx })| fval = <fs>-low )
+                                                     ( fnam = |RSCSEL_255-IHIGH_I(0{ idx })| fval = <fs>-high ) )
+                                                     )
+                      ).
+
+  ENDMETHOD.
+
+  METHOD tfm_build.
+    LOOP AT gt_conf-cont ASSIGNING FIELD-SYMBOL(<fs>).
+      ch_tab = CORRESPONDING #( BASE ( ch_tab ) get_header(  i_head = gt_conf-p_name ) ).
+      ch_tab = CORRESPONDING #( BASE ( ch_tab ) get_bdc_action( i_acc  = c_cur
+                                                                i_val  = |{ <fs>-f_name }-LOW| ) ).
+      ch_tab = CORRESPONDING #( BASE ( ch_tab ) get_header( i_so   = abap_true ) ).
+      ch_tab = CORRESPONDING #( BASE ( ch_tab ) get_par( i_par = <fs>-f_name ) ).
+      ch_tab = CORRESPONDING #( BASE ( ch_tab ) get_range( i_range = <fs>-f_name ) ).
+    ENDLOOP.
+  ENDMETHOD.
+
+  METHOD get_transformation.
+    gt_ref = VALUE #( BASE gt_ref ( tfm = NEW #( ) line_ref = i_conf-p_name ) ).
+    DATA(ref) = gt_ref[ line_ref = i_conf-p_name ]-tfm.
+    ref->gt_conf = i_conf.
+    ref->tfm_build(
+      CHANGING
+        ch_tab = r_tab
+    ).
+    ref->t_bdc = r_tab.
+  ENDMETHOD.
+
+ENDCLASS.
